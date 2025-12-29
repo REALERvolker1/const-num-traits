@@ -2,7 +2,7 @@
 
 use core::ops::Neg;
 
-use crate::{Float, Num, NumCast};
+use crate::{Float, Num, NumCast, __non_backwards_compatible_required_reexports::NumConstShim};
 
 // NOTE: These doctests have the same issue as those in src/float.rs.
 // They're testing the inherent methods directly, and not those of `Real`.
@@ -14,7 +14,14 @@ use crate::{Float, Num, NumCast};
 /// for a list of data types that could meaningfully implement this trait.
 ///
 /// This trait is only available with the `std` feature, or with the `libm` feature otherwise.
-pub trait Real: Num + Copy + NumCast + PartialOrd + Neg<Output = Self> {
+pub const trait Real:
+    Num
+    + [const] NumConstShim
+    + Copy
+    + [const] NumCast
+    + [const] PartialOrd
+    + [const] Neg<Output = Self>
+{
     /// Returns the smallest finite value that this type can represent.
     ///
     /// ```
@@ -779,7 +786,7 @@ pub trait Real: Num + Copy + NumCast + PartialOrd + Neg<Output = Self> {
     fn atanh(self) -> Self;
 }
 
-impl<T: Float> Real for T {
+impl<T: [const] Float> const Real for T {
     forward! {
         Float::min_value() -> Self;
         Float::min_positive_value() -> Self;
