@@ -3,7 +3,7 @@ use core::num::Wrapping;
 use core::ops::Mul;
 
 /// Binary operator for raising a value to a power.
-pub trait Pow<RHS> {
+pub const trait Pow<RHS> {
     /// The result after applying the operator.
     type Output;
 
@@ -29,38 +29,38 @@ macro_rules! pow_impl {
         // pow_impl!($t, u64);
     };
     ($t:ty, $rhs:ty) => {
-        pow_impl!($t, $rhs, usize, pow);
+        pow_impl!($t, $rhs, usize, pow_const);
     };
-    ($t:ty, $rhs:ty, $desired_rhs:ty, $method:expr) => {
-        impl Pow<$rhs> for $t {
+    ($t:ty, $rhs:ty, $desired_rhs:ty, $method:path) => {
+        impl const Pow<$rhs> for $t {
             type Output = $t;
             #[inline]
             fn pow(self, rhs: $rhs) -> $t {
-                ($method)(self, <$desired_rhs>::from(rhs))
+                $method(self, <$desired_rhs>::from(rhs))
             }
         }
 
-        impl<'a> Pow<&'a $rhs> for $t {
+        impl<'a> const Pow<&'a $rhs> for $t {
             type Output = $t;
             #[inline]
             fn pow(self, rhs: &'a $rhs) -> $t {
-                ($method)(self, <$desired_rhs>::from(*rhs))
+                $method(self, <$desired_rhs>::from(*rhs))
             }
         }
 
-        impl<'a> Pow<$rhs> for &'a $t {
+        impl<'a> const Pow<$rhs> for &'a $t {
             type Output = $t;
             #[inline]
             fn pow(self, rhs: $rhs) -> $t {
-                ($method)(*self, <$desired_rhs>::from(rhs))
+                $method(*self, <$desired_rhs>::from(rhs))
             }
         }
 
-        impl<'a, 'b> Pow<&'a $rhs> for &'b $t {
+        impl<'a, 'b> const Pow<&'a $rhs> for &'b $t {
             type Output = $t;
             #[inline]
             fn pow(self, rhs: &'a $rhs) -> $t {
-                ($method)(*self, <$desired_rhs>::from(*rhs))
+                $method(*self, <$desired_rhs>::from(*rhs))
             }
         }
     };
@@ -147,19 +147,19 @@ mod float_impls {
     use super::Pow;
     use crate::Float;
 
-    pow_impl!(f32, i8, i32, <f32 as Float>::powi);
-    pow_impl!(f32, u8, i32, <f32 as Float>::powi);
-    pow_impl!(f32, i16, i32, <f32 as Float>::powi);
-    pow_impl!(f32, u16, i32, <f32 as Float>::powi);
-    pow_impl!(f32, i32, i32, <f32 as Float>::powi);
-    pow_impl!(f64, i8, i32, <f64 as Float>::powi);
-    pow_impl!(f64, u8, i32, <f64 as Float>::powi);
-    pow_impl!(f64, i16, i32, <f64 as Float>::powi);
-    pow_impl!(f64, u16, i32, <f64 as Float>::powi);
-    pow_impl!(f64, i32, i32, <f64 as Float>::powi);
-    pow_impl!(f32, f32, f32, <f32 as Float>::powf);
-    pow_impl!(f64, f32, f64, <f64 as Float>::powf);
-    pow_impl!(f64, f64, f64, <f64 as Float>::powf);
+    pow_impl!(f32, i8, i32, Float::powi);
+    pow_impl!(f32, u8, i32, Float::powi);
+    pow_impl!(f32, i16, i32, Float::powi);
+    pow_impl!(f32, u16, i32, Float::powi);
+    pow_impl!(f32, i32, i32, Float::powi);
+    pow_impl!(f64, i8, i32, Float::powi);
+    pow_impl!(f64, u8, i32, Float::powi);
+    pow_impl!(f64, i16, i32, Float::powi);
+    pow_impl!(f64, u16, i32, Float::powi);
+    pow_impl!(f64, i32, i32, Float::powi);
+    pow_impl!(f32, f32, f32, Float::powf);
+    pow_impl!(f64, f32, f64, Float::powf);
+    pow_impl!(f64, f64, f64, Float::powf);
 }
 
 /// Raises a value to the power of exp, using exponentiation by squaring.
