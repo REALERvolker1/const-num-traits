@@ -5,12 +5,24 @@ use core::ops::{Add, Div, Neg};
 use core::f32;
 use core::f64;
 
-use crate::{Num, NumCast, ToPrimitive};
+use crate::{Num, NumCast, NumConstShim, ToPrimitive};
+
+pub(crate) const fn fpcategory_eq(a: FpCategory, b: FpCategory) -> bool {
+    (a as i32) == (b as i32)
+}
 
 /// Generic trait for floating point numbers that works with `no_std`.
 ///
 /// This trait implements a subset of the `Float` trait.
-pub trait FloatCore: Num + NumCast + Neg<Output = Self> + PartialOrd + Copy {
+pub const trait FloatCore:
+    Num
+    + [const] NumConstShim
+    + [const] NumCast
+    + [const] Neg<Output = Self>
+    + [const] PartialOrd
+    + [const] PartialEq
+    + Copy
+{
     /// Returns positive infinity.
     ///
     /// # Examples
@@ -239,7 +251,7 @@ pub trait FloatCore: Num + NumCast + Neg<Output = Self> + PartialOrd + Copy {
     /// ```
     #[inline]
     fn is_normal(self) -> bool {
-        self.classify() == FpCategory::Normal
+        fpcategory_eq(self.classify(), FpCategory::Normal)
     }
 
     /// Returns `true` if the number is [subnormal].
@@ -265,7 +277,7 @@ pub trait FloatCore: Num + NumCast + Neg<Output = Self> + PartialOrd + Copy {
     /// [subnormal]: https://en.wikipedia.org/wiki/Subnormal_number
     #[inline]
     fn is_subnormal(self) -> bool {
-        self.classify() == FpCategory::Subnormal
+        fpcategory_eq(self.classify(), FpCategory::Subnormal)
     }
 
     /// Returns the floating point category of the number. If only one property
@@ -679,7 +691,7 @@ pub trait FloatCore: Num + NumCast + Neg<Output = Self> + PartialOrd + Copy {
     /// check(3.0f64, 0.0, 2.0, 2.0);
     /// ```
     fn clamp(self, min: Self, max: Self) -> Self {
-        crate::clamp(self, min, max)
+        crate::clamp_const(self, min, max)
     }
 
     /// Returns the reciprocal (multiplicative inverse) of the number.
@@ -733,7 +745,7 @@ pub trait FloatCore: Num + NumCast + Neg<Output = Self> + PartialOrd + Copy {
         // It should always be possible to convert a positive `i32` to a `usize`.
         // Note, `i32::MIN` will wrap and still be negative, so we need to convert
         // to `u32` without sign-extension before growing to `usize`.
-        super::pow(self, (exp as u32).to_usize().unwrap())
+        super::pow::pow_const(self, (exp as u32).to_usize().unwrap())
     }
 
     /// Converts to degrees, assuming the number is in radians.
@@ -798,7 +810,7 @@ pub trait FloatCore: Num + NumCast + Neg<Output = Self> + PartialOrd + Copy {
     fn integer_decode(self) -> (u64, i16, i8);
 }
 
-impl FloatCore for f32 {
+impl const FloatCore for f32 {
     constant! {
         infinity() -> f32::INFINITY;
         neg_infinity() -> f32::NEG_INFINITY;
@@ -841,7 +853,7 @@ impl FloatCore for f32 {
         Self::fract(self) -> Self;
         Self::abs(self) -> Self;
         Self::signum(self) -> Self;
-        Self::powi(self, n: i32) -> Self;
+        // Self::powi(self, n: i32) -> Self;
     }
 
     #[cfg(all(not(feature = "std"), feature = "libm"))]
@@ -860,7 +872,7 @@ impl FloatCore for f32 {
     }
 }
 
-impl FloatCore for f64 {
+impl const FloatCore for f64 {
     constant! {
         infinity() -> f64::INFINITY;
         neg_infinity() -> f64::NEG_INFINITY;
@@ -903,7 +915,7 @@ impl FloatCore for f64 {
         Self::fract(self) -> Self;
         Self::abs(self) -> Self;
         Self::signum(self) -> Self;
-        Self::powi(self, n: i32) -> Self;
+        // Self::powi(self, n: i32) -> Self;
     }
 
     #[cfg(all(not(feature = "std"), feature = "libm"))]
@@ -2046,7 +2058,7 @@ macro_rules! float_impl_libm {
     };
 }
 
-fn integer_decode_f32(f: f32) -> (u64, i16, i8) {
+const fn integer_decode_f32(f: f32) -> (u64, i16, i8) {
     let bits: u32 = f.to_bits();
     let sign: i8 = if bits >> 31 == 0 { 1 } else { -1 };
     let mut exponent: i16 = ((bits >> 23) & 0xff) as i16;
@@ -2060,7 +2072,7 @@ fn integer_decode_f32(f: f32) -> (u64, i16, i8) {
     (mantissa as u64, exponent, sign)
 }
 
-fn integer_decode_f64(f: f64) -> (u64, i16, i8) {
+const fn integer_decode_f64(f: f64) -> (u64, i16, i8) {
     let bits: u64 = f.to_bits();
     let sign: i8 = if bits >> 63 == 0 { 1 } else { -1 };
     let mut exponent: i16 = ((bits >> 52) & 0x7ff) as i16;

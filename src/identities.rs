@@ -1,3 +1,4 @@
+use ::core::marker::Destruct;
 use core::num::Wrapping;
 use core::ops::{Add, Mul};
 
@@ -12,7 +13,7 @@ use core::num::Saturating;
 /// a + 0 = a       ∀ a ∈ Self
 /// 0 + a = a       ∀ a ∈ Self
 /// ```
-pub trait Zero: Sized + Add<Self, Output = Self> {
+pub const trait Zero: Sized + [const] Add<Self, Output = Self> + [const] Destruct {
     /// Returns the additive identity element of `Self`, `0`.
     /// # Purity
     ///
@@ -40,7 +41,7 @@ pub trait ConstZero: Zero {
 
 macro_rules! zero_impl {
     ($t:ty, $v:expr) => {
-        impl Zero for $t {
+        impl const Zero for $t {
             #[inline]
             fn zero() -> $t {
                 $v
@@ -74,9 +75,9 @@ zero_impl!(i128, 0);
 zero_impl!(f32, 0.0);
 zero_impl!(f64, 0.0);
 
-impl<T: Zero> Zero for Wrapping<T>
+impl<T: [const] Zero> const Zero for Wrapping<T>
 where
-    Wrapping<T>: Add<Output = Wrapping<T>>,
+    Wrapping<T>: [const] Add<Output = Wrapping<T>>,
 {
     fn is_zero(&self) -> bool {
         self.0.is_zero()
@@ -99,9 +100,9 @@ where
 }
 
 #[cfg(has_num_saturating)]
-impl<T: Zero> Zero for Saturating<T>
+impl<T: [const] Zero> const Zero for Saturating<T>
 where
-    Saturating<T>: Add<Output = Saturating<T>>,
+    Saturating<T>: [const] Add<Output = Saturating<T>>,
 {
     fn is_zero(&self) -> bool {
         self.0.is_zero()
@@ -132,7 +133,7 @@ where
 /// a * 1 = a       ∀ a ∈ Self
 /// 1 * a = a       ∀ a ∈ Self
 /// ```
-pub trait One: Sized + Mul<Self, Output = Self> {
+pub const trait One: Sized + [const] Mul<Self, Output = Self> + [const] Destruct {
     /// Returns the multiplicative identity element of `Self`, `1`.
     ///
     /// # Purity
@@ -156,7 +157,7 @@ pub trait One: Sized + Mul<Self, Output = Self> {
     #[inline]
     fn is_one(&self) -> bool
     where
-        Self: PartialEq,
+        Self: [const] PartialEq,
     {
         *self == Self::one()
     }
@@ -171,7 +172,7 @@ pub trait ConstOne: One {
 
 macro_rules! one_impl {
     ($t:ty, $v:expr) => {
-        impl One for $t {
+        impl const One for $t {
             #[inline]
             fn one() -> $t {
                 $v
@@ -205,9 +206,9 @@ one_impl!(i128, 1);
 one_impl!(f32, 1.0);
 one_impl!(f64, 1.0);
 
-impl<T: One> One for Wrapping<T>
+impl<T: [const] One> const One for Wrapping<T>
 where
-    Wrapping<T>: Mul<Output = Wrapping<T>>,
+    Wrapping<T>: [const] Mul<Output = Wrapping<T>>,
 {
     fn set_one(&mut self) {
         self.0.set_one();
@@ -226,9 +227,9 @@ where
 }
 
 #[cfg(has_num_saturating)]
-impl<T: One> One for Saturating<T>
+impl<T: [const] One> const One for Saturating<T>
 where
-    Saturating<T>: Mul<Output = Saturating<T>>,
+    Saturating<T>: [const] Mul<Output = Saturating<T>>,
 {
     fn set_one(&mut self) {
         self.0.set_one();

@@ -17,12 +17,25 @@
 #![doc(html_root_url = "https://docs.rs/num-traits/0.2")]
 #![deny(unconditional_recursion)]
 #![no_std]
-#![feature(const_trait_impl, const_ops, const_try, const_cmp, const_destruct)]
+#![allow(internal_features)]
+#![feature(
+    const_trait_impl,
+    const_ops,
+    const_try,
+    const_cmp,
+    const_destruct,
+    const_option_ops,
+    core_intrinsics,
+    const_eval_select,
+    const_convert,
+    const_clone
+)]
 
 // Need to explicitly bring the crate in for inherent float methods
 #[cfg(feature = "std")]
 extern crate std;
 
+use ::core::marker::Destruct;
 use core::fmt;
 use core::num::Wrapping;
 use core::ops::{Add, Div, Mul, Rem, Sub};
@@ -63,9 +76,18 @@ pub mod pow;
 pub mod real;
 pub mod sign;
 
+pub(crate) const trait NumConstShim:
+    [const] PartialEq + [const] Zero + [const] One + [const] NumOps
+{
+}
+impl<T> const NumConstShim for T where
+    T: [const] PartialEq + [const] Zero + [const] One + [const] NumOps
+{
+}
+
 /// The base trait for numeric types, covering `0` and `1` values,
 /// comparisons, basic numeric operations, and string conversion.
-pub trait Num: PartialEq + Zero + One + NumOps {
+pub trait Num: NumConstShim {
     type FromStrRadixErr;
 
     /// Convert from a string and radix (typically `2..=36`).
@@ -99,21 +121,21 @@ pub trait Num: PartialEq + Zero + One + NumOps {
 /// Generic trait for types implementing basic numeric operations
 ///
 /// This is automatically implemented for types which implement the operators.
-pub trait NumOps<Rhs = Self, Output = Self>:
-    Add<Rhs, Output = Output>
-    + Sub<Rhs, Output = Output>
-    + Mul<Rhs, Output = Output>
-    + Div<Rhs, Output = Output>
-    + Rem<Rhs, Output = Output>
+pub const trait NumOps<Rhs = Self, Output = Self>:
+    [const] Add<Rhs, Output = Output>
+    + [const] Sub<Rhs, Output = Output>
+    + [const] Mul<Rhs, Output = Output>
+    + [const] Div<Rhs, Output = Output>
+    + [const] Rem<Rhs, Output = Output>
 {
 }
 
-impl<T, Rhs, Output> NumOps<Rhs, Output> for T where
-    T: Add<Rhs, Output = Output>
-        + Sub<Rhs, Output = Output>
-        + Mul<Rhs, Output = Output>
-        + Div<Rhs, Output = Output>
-        + Rem<Rhs, Output = Output>
+impl<T, Rhs, Output> const NumOps<Rhs, Output> for T where
+    T: [const] Add<Rhs, Output = Output>
+        + [const] Sub<Rhs, Output = Output>
+        + [const] Mul<Rhs, Output = Output>
+        + [const] Div<Rhs, Output = Output>
+        + [const] Rem<Rhs, Output = Output>
 {
 }
 
@@ -121,8 +143,8 @@ impl<T, Rhs, Output> NumOps<Rhs, Output> for T where
 /// the second operand by reference.
 ///
 /// This is automatically implemented for types which implement the operators.
-pub trait NumRef: Num + for<'r> NumOps<&'r Self> {}
-impl<T> NumRef for T where T: Num + for<'r> NumOps<&'r T> {}
+pub const trait NumRef: Num + for<'r> [const] NumOps<&'r Self> {}
+impl<T> const NumRef for T where T: Num + for<'r> [const] NumOps<&'r T> {}
 
 /// The trait for `Num` references which implement numeric operations, taking the
 /// second operand either by value or by reference.
@@ -130,34 +152,51 @@ impl<T> NumRef for T where T: Num + for<'r> NumOps<&'r T> {}
 /// This is automatically implemented for all types which implement the operators. It covers
 /// every type implementing the operations though, regardless of it being a reference or
 /// related to `Num`.
-pub trait RefNum<Base>: NumOps<Base, Base> + for<'r> NumOps<&'r Base, Base> {}
-impl<T, Base> RefNum<Base> for T where T: NumOps<Base, Base> + for<'r> NumOps<&'r Base, Base> {}
+pub const trait RefNum<Base>:
+    [const] NumOps<Base, Base> + for<'r> [const] NumOps<&'r Base, Base>
+{
+}
+impl<T, Base> const RefNum<Base> for T where
+    T: [const] NumOps<Base, Base> + for<'r> [const] NumOps<&'r Base, Base>
+{
+}
 
 /// Generic trait for types implementing numeric assignment operators (like `+=`).
 ///
 /// This is automatically implemented for types which implement the operators.
-pub trait NumAssignOps<Rhs = Self>:
-    AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs> + DivAssign<Rhs> + RemAssign<Rhs>
+pub const trait NumAssignOps<Rhs = Self>:
+    [const] AddAssign<Rhs>
+    + [const] SubAssign<Rhs>
+    + [const] MulAssign<Rhs>
+    + [const] DivAssign<Rhs>
+    + [const] RemAssign<Rhs>
 {
 }
 
-impl<T, Rhs> NumAssignOps<Rhs> for T where
-    T: AddAssign<Rhs> + SubAssign<Rhs> + MulAssign<Rhs> + DivAssign<Rhs> + RemAssign<Rhs>
+impl<T, Rhs> const NumAssignOps<Rhs> for T where
+    T: [const] AddAssign<Rhs>
+        + [const] SubAssign<Rhs>
+        + [const] MulAssign<Rhs>
+        + [const] DivAssign<Rhs>
+        + [const] RemAssign<Rhs>
 {
 }
 
 /// The trait for `Num` types which also implement assignment operators.
 ///
 /// This is automatically implemented for types which implement the operators.
-pub trait NumAssign: Num + NumAssignOps {}
-impl<T> NumAssign for T where T: Num + NumAssignOps {}
+pub const trait NumAssign: Num + [const] NumConstShim + [const] NumAssignOps {}
+impl<T> const NumAssign for T where T: Num + [const] NumConstShim + [const] NumAssignOps {}
 
 /// The trait for `NumAssign` types which also implement assignment operations
 /// taking the second operand by reference.
 ///
 /// This is automatically implemented for types which implement the operators.
-pub trait NumAssignRef: NumAssign + for<'r> NumAssignOps<&'r Self> {}
-impl<T> NumAssignRef for T where T: NumAssign + for<'r> NumAssignOps<&'r T> {}
+pub const trait NumAssignRef:
+    [const] NumAssign + for<'r> [const] NumAssignOps<&'r Self>
+{
+}
+impl<T> const NumAssignRef for T where T: [const] NumAssign + for<'r> [const] NumAssignOps<&'r T> {}
 
 macro_rules! int_trait_impl {
     ($name:ident for $($t:ty)*) => ($(
@@ -422,6 +461,29 @@ pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
     }
 }
 
+/// A value bounded by a minimum and a maximum
+///
+///  If input is less than min then this returns min.
+///  If input is greater than max then this returns max.
+///  Otherwise this returns input.
+///
+/// **Panics** in debug mode if `!(min <= max)`.
+#[inline]
+pub(crate) const fn clamp_const<T: [const] PartialOrd + [const] Destruct>(
+    input: T,
+    min: T,
+    max: T,
+) -> T {
+    debug_assert!(min <= max, "min must be less than or equal to max");
+    if input < min {
+        min
+    } else if input > max {
+        max
+    } else {
+        input
+    }
+}
+
 /// A value bounded by a minimum value
 ///
 ///  If input is less than min then this returns min.
@@ -432,6 +494,23 @@ pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
 #[inline]
 #[allow(clippy::eq_op)]
 pub fn clamp_min<T: PartialOrd>(input: T, min: T) -> T {
+    debug_assert!(min == min, "min must not be NAN");
+    if input < min {
+        min
+    } else {
+        input
+    }
+}
+/// A value bounded by a minimum value
+///
+///  If input is less than min then this returns min.
+///  Otherwise this returns input.
+///  `clamp_min(std::f32::NAN, 1.0)` preserves `NAN` different from `f32::min(std::f32::NAN, 1.0)`.
+///
+/// **Panics** in debug mode if `!(min == min)`. (This occurs if `min` is `NAN`.)
+#[inline]
+#[allow(clippy::eq_op)]
+pub(crate) const fn clamp_min_const<T: const PartialOrd + const Destruct>(input: T, min: T) -> T {
     debug_assert!(min == min, "min must not be NAN");
     if input < min {
         min
@@ -450,6 +529,24 @@ pub fn clamp_min<T: PartialOrd>(input: T, min: T) -> T {
 #[inline]
 #[allow(clippy::eq_op)]
 pub fn clamp_max<T: PartialOrd>(input: T, max: T) -> T {
+    debug_assert!(max == max, "max must not be NAN");
+    if input > max {
+        max
+    } else {
+        input
+    }
+}
+
+/// A value bounded by a maximum value
+///
+///  If input is greater than max then this returns max.
+///  Otherwise this returns input.
+///  `clamp_max(std::f32::NAN, 1.0)` preserves `NAN` different from `f32::max(std::f32::NAN, 1.0)`.
+///
+/// **Panics** in debug mode if `!(max == max)`. (This occurs if `max` is `NAN`.)
+#[inline]
+#[allow(clippy::eq_op)]
+pub(crate) const fn clamp_max_const<T: const PartialOrd + const Destruct>(input: T, max: T) -> T {
     debug_assert!(max == max, "max must not be NAN");
     if input > max {
         max

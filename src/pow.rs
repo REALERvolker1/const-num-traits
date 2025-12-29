@@ -175,7 +175,6 @@ mod float_impls {
 /// assert_eq!(pow(6u8, 3), 216);
 /// assert_eq!(pow(0u8, 0), 1); // Be aware if this case affects you
 /// ```
-#[inline]
 pub fn pow<T: Clone + One + Mul<T, Output = T>>(mut base: T, mut exp: usize) -> T {
     if exp == 0 {
         return T::one();
@@ -195,6 +194,46 @@ pub fn pow<T: Clone + One + Mul<T, Output = T>>(mut base: T, mut exp: usize) -> 
         base = base.clone() * base;
         if exp & 1 == 1 {
             acc = acc * base.clone();
+        }
+    }
+    acc
+}
+
+/// Raises a value to the power of exp, using exponentiation by squaring.
+///
+/// Note that `0⁰` (`pow(0, 0)`) returns `1`. Mathematically this is undefined.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use num_traits::pow_const;
+///
+/// assert_eq!(pow_const(2i8, 4), 16);
+/// assert_eq!(pow_const(6u8, 3), 216);
+/// assert_eq!(pow_const(0u8, 0), 1); // Be aware if this case affects you
+/// ```
+pub(crate) const fn pow_const<T: Copy + [const] One + [const] Mul<T, Output = T>>(
+    mut base: T,
+    mut exp: usize,
+) -> T {
+    if exp == 0 {
+        return T::one();
+    }
+
+    while exp & 1 == 0 {
+        base = base * base;
+        exp >>= 1;
+    }
+    if exp == 1 {
+        return base;
+    }
+
+    let mut acc = base;
+    while exp > 1 {
+        exp >>= 1;
+        base = base * base;
+        if exp & 1 == 1 {
+            acc = acc * base;
         }
     }
     acc

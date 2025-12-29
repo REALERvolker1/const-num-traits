@@ -1,3 +1,5 @@
+use ::core::intrinsics::const_eval_select;
+use ::core::marker::Destruct;
 use core::mem::size_of;
 use core::num::Wrapping;
 use core::num::{
@@ -18,7 +20,7 @@ use core::{u128, u16, u32, u64, u8, usize};
 /// On the other hand, conversions with possible precision loss or truncation
 /// are admitted, like an `f32` with a decimal part to an integer type, or
 /// even a large `f64` saturating to `f32` infinity.
-pub trait ToPrimitive {
+pub const trait ToPrimitive: [const] Destruct {
     /// Converts the value of `self` to an `isize`. If the value cannot be
     /// represented by an `isize`, then `None` is returned.
     #[inline]
@@ -160,7 +162,7 @@ macro_rules! impl_to_primitive_int_to_uint {
 
 macro_rules! impl_to_primitive_int {
     ($T:ident) => {
-        impl ToPrimitive for $T {
+        impl const ToPrimitive for $T {
             impl_to_primitive_int_to_int! { $T:
                 fn to_isize -> isize;
                 fn to_i8 -> i8;
@@ -228,7 +230,7 @@ macro_rules! impl_to_primitive_uint_to_uint {
 
 macro_rules! impl_to_primitive_uint {
     ($T:ident) => {
-        impl ToPrimitive for $T {
+        impl const ToPrimitive for $T {
             impl_to_primitive_uint_to_int! { $T:
                 fn to_isize -> isize;
                 fn to_i8 -> i8;
@@ -277,7 +279,7 @@ macro_rules! impl_to_primitive_nonzero_to_method {
 
 macro_rules! impl_to_primitive_nonzero {
     ($T:ident) => {
-        impl ToPrimitive for $T {
+        impl const ToPrimitive for $T {
             impl_to_primitive_nonzero_to_method! { $T:
                 fn to_isize -> isize;
                 fn to_i8 -> i8;
@@ -326,10 +328,18 @@ macro_rules! impl_to_primitive_float_to_float {
 }
 
 macro_rules! float_to_int_unchecked {
-    // SAFETY: Must not be NaN or infinite; must be representable as the integer after truncating.
-    // We already checked that the float is in the exclusive range `(MIN-1, MAX+1)`.
-    ($float:expr => $int:ty) => {
-        unsafe { $float.to_int_unchecked::<$int>() }
+    ($flt:ty => $int:ty) => {
+        // SAFETY: Must not be NaN or infinite; must be representable as the integer after truncating.
+        // We already checked that the float is in the exclusive range `(MIN-1, MAX+1)`.
+        const fn ftoi(x: $flt) -> $int {
+            const fn in_const(x: $flt) -> $int {
+                x as _
+            }
+            fn at_rt(x: $flt) -> $int {
+                unsafe { x.to_int_unchecked() }
+            }
+            const_eval_select((x,), in_const, at_rt)
+        }
     };
 }
 
@@ -337,6 +347,7 @@ macro_rules! impl_to_primitive_float_to_signed_int {
     ($f:ident : $( fn $method:ident -> $i:ident ; )*) => {$(
         #[inline]
         fn $method(&self) -> Option<$i> {
+            float_to_int_unchecked!($f => $i);
             // Float as int truncates toward zero, so we want to allow values
             // in the exclusive range `(MIN-1, MAX+1)`.
             if size_of::<$f>() > size_of::<$i>() {
@@ -344,7 +355,7 @@ macro_rules! impl_to_primitive_float_to_signed_int {
                 const MIN_M1: $f = $i::MIN as $f - 1.0;
                 const MAX_P1: $f = $i::MAX as $f + 1.0;
                 if *self > MIN_M1 && *self < MAX_P1 {
-                    return Some(float_to_int_unchecked!(*self => $i));
+                    return Some(ftoi(*self));
                 }
             } else {
                 // We can't represent `MIN-1` exactly, but there's no fractional part
@@ -354,7 +365,7 @@ macro_rules! impl_to_primitive_float_to_signed_int {
                 // `MAX+1` (a power of two) when we cast it.
                 const MAX_P1: $f = $i::MAX as $f;
                 if *self >= MIN && *self < MAX_P1 {
-                    return Some(float_to_int_unchecked!(*self => $i));
+                    return Some(ftoi(*self));
                 }
             }
             None
@@ -366,13 +377,14 @@ macro_rules! impl_to_primitive_float_to_unsigned_int {
     ($f:ident : $( fn $method:ident -> $u:ident ; )*) => {$(
         #[inline]
         fn $method(&self) -> Option<$u> {
+            float_to_int_unchecked!($f => $u);
             // Float as int truncates toward zero, so we want to allow values
             // in the exclusive range `(-1, MAX+1)`.
             if size_of::<$f>() > size_of::<$u>() {
                 // With a larger size, we can represent the range exactly.
                 const MAX_P1: $f = $u::MAX as $f + 1.0;
                 if *self > -1.0 && *self < MAX_P1 {
-                    return Some(float_to_int_unchecked!(*self => $u));
+                    return Some(ftoi(*self));
                 }
             } else {
                 // We can't represent `MAX` exactly, but it will round up to exactly
@@ -380,7 +392,7 @@ macro_rules! impl_to_primitive_float_to_unsigned_int {
                 // (`u128::MAX as f32` is infinity, but this is still ok.)
                 const MAX_P1: $f = $u::MAX as $f;
                 if *self > -1.0 && *self < MAX_P1 {
-                    return Some(float_to_int_unchecked!(*self => $u));
+                    return Some(ftoi(*self));
                 }
             }
             None
@@ -390,7 +402,7 @@ macro_rules! impl_to_primitive_float_to_unsigned_int {
 
 macro_rules! impl_to_primitive_float {
     ($T:ident) => {
-        impl ToPrimitive for $T {
+        impl const ToPrimitive for $T {
             impl_to_primitive_float_to_signed_int! { $T:
                 fn to_isize -> isize;
                 fn to_i8 -> i8;
@@ -430,7 +442,7 @@ impl_to_primitive_float!(f64);
 /// On the other hand, conversions with possible precision loss or truncation
 /// are admitted, like an `f32` with a decimal part to an integer type, or
 /// even a large `f64` saturating to `f32` infinity.
-pub trait FromPrimitive: Sized {
+pub const trait FromPrimitive: Sized + [const] Destruct {
     /// Converts an `isize` to return an optional value of this type. If the
     /// value cannot be represented by this type, then `None` is returned.
     #[inline]
@@ -539,7 +551,7 @@ pub trait FromPrimitive: Sized {
 
 macro_rules! impl_from_primitive {
     ($T:ty, $to_ty:ident) => {
-        impl FromPrimitive for $T {
+        impl const FromPrimitive for $T {
             #[inline]
             fn from_isize(n: isize) -> Option<$T> {
                 n.$to_ty()
@@ -619,7 +631,7 @@ impl_from_primitive!(f64, to_f64);
 
 macro_rules! impl_from_primitive_nonzero {
     ($T:ty, $to_ty:ident) => {
-        impl FromPrimitive for $T {
+        impl const FromPrimitive for $T {
             #[inline]
             fn from_isize(n: isize) -> Option<$T> {
                 n.$to_ty().and_then(Self::new)
@@ -704,7 +716,7 @@ macro_rules! impl_to_primitive_wrapping {
     )*}
 }
 
-impl<T: ToPrimitive> ToPrimitive for Wrapping<T> {
+impl<T: [const] ToPrimitive> const ToPrimitive for Wrapping<T> {
     impl_to_primitive_wrapping! {
         fn to_isize -> isize;
         fn to_i8 -> i8;
@@ -734,7 +746,7 @@ macro_rules! impl_from_primitive_wrapping {
     )*}
 }
 
-impl<T: FromPrimitive> FromPrimitive for Wrapping<T> {
+impl<T: [const] FromPrimitive> const FromPrimitive for Wrapping<T> {
     impl_from_primitive_wrapping! {
         fn from_isize(isize);
         fn from_i8(i8);
@@ -771,7 +783,7 @@ pub fn cast<T: NumCast, U: NumCast>(n: T) -> Option<U> {
 }
 
 /// An interface for casting between machine scalars.
-pub trait NumCast: Sized + ToPrimitive {
+pub const trait NumCast: Sized + [const] ToPrimitive {
     /// Creates a number from another value that can be converted into
     /// a primitive via the `ToPrimitive` trait. If the source value cannot be
     /// represented by the target type, then `None` is returned.
@@ -784,14 +796,14 @@ pub trait NumCast: Sized + ToPrimitive {
     /// On the other hand, conversions with possible precision loss or truncation
     /// are admitted, like an `f32` with a decimal part to an integer type, or
     /// even a large `f64` saturating to `f32` infinity.
-    fn from<T: ToPrimitive>(n: T) -> Option<Self>;
+    fn from<T: [const] ToPrimitive>(n: T) -> Option<Self>;
 }
 
 macro_rules! impl_num_cast {
     ($T:ty, $conv:ident) => {
-        impl NumCast for $T {
+        impl const NumCast for $T {
             #[inline]
-            fn from<N: ToPrimitive>(n: N) -> Option<$T> {
+            fn from<N: [const] ToPrimitive>(n: N) -> Option<$T> {
                 n.$conv()
             }
         }
@@ -815,9 +827,9 @@ impl_num_cast!(f64, to_f64);
 
 macro_rules! impl_num_cast_nonzero {
     ($T:ty, $conv:ident) => {
-        impl NumCast for $T {
+        impl const NumCast for $T {
             #[inline]
-            fn from<N: ToPrimitive>(n: N) -> Option<$T> {
+            fn from<N: [const] ToPrimitive>(n: N) -> Option<$T> {
                 n.$conv().and_then(Self::new)
             }
         }
@@ -838,8 +850,8 @@ impl_num_cast_nonzero!(NonZeroI32, to_i32);
 impl_num_cast_nonzero!(NonZeroI64, to_i64);
 impl_num_cast_nonzero!(NonZeroI128, to_i128);
 
-impl<T: NumCast> NumCast for Wrapping<T> {
-    fn from<U: ToPrimitive>(n: U) -> Option<Self> {
+impl<T: [const] NumCast> const NumCast for Wrapping<T> {
+    fn from<U: [const] ToPrimitive>(n: U) -> Option<Self> {
         T::from(n).map(Wrapping)
     }
 }
@@ -870,7 +882,7 @@ impl<T: NumCast> NumCast for Wrapping<T> {
 /// let x: u8 = (1.04E+17).as_(); // UB
 /// ```
 ///
-pub trait AsPrimitive<T>: 'static + Copy
+pub const trait AsPrimitive<T>: 'static + Copy
 where
     T: 'static + Copy,
 {
@@ -880,7 +892,7 @@ where
 
 macro_rules! impl_as_primitive {
     (@ $T: ty =>  impl $U: ty ) => {
-        impl AsPrimitive<$U> for $T {
+        impl const AsPrimitive<$U> for $T {
             #[inline] fn as_(self) -> $U { self as $U }
         }
     };
