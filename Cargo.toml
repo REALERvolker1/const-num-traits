@@ -24,7 +24,7 @@ libm = { version = "*", optional = true }
 const_libm = { git = "https://github.com/REALERvolker1/const_libm.git" }
 
 [features]
-default = ["libm"]
+default = ["std"]
 libm = ["dep:libm"]
 std = []
 
