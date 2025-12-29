@@ -4,7 +4,7 @@ use core::{u128, u16, u32, u64, u8, usize};
 
 macro_rules! overflowing_impl {
     ($trait_name:ident, $method:ident, $t:ty) => {
-        impl $trait_name for $t {
+        impl const $trait_name for $t {
             #[inline]
             fn $method(&self, v: &Self) -> (Self, bool) {
                 <$t>::$method(*self, *v)
@@ -14,7 +14,7 @@ macro_rules! overflowing_impl {
 }
 
 /// Performs addition with a flag for overflow.
-pub trait OverflowingAdd: Sized + Add<Self, Output = Self> {
+pub const trait OverflowingAdd: Sized + [const] Add<Self, Output = Self> {
     /// Returns a tuple of the sum along with a boolean indicating whether an arithmetic overflow would occur.
     /// If an overflow would have occurred then the wrapped value is returned.
     fn overflowing_add(&self, v: &Self) -> (Self, bool);
@@ -35,7 +35,7 @@ overflowing_impl!(OverflowingAdd, overflowing_add, isize);
 overflowing_impl!(OverflowingAdd, overflowing_add, i128);
 
 /// Performs substraction with a flag for overflow.
-pub trait OverflowingSub: Sized + Sub<Self, Output = Self> {
+pub const trait OverflowingSub: Sized + [const] Sub<Self, Output = Self> {
     /// Returns a tuple of the difference along with a boolean indicating whether an arithmetic overflow would occur.
     /// If an overflow would have occurred then the wrapped value is returned.
     fn overflowing_sub(&self, v: &Self) -> (Self, bool);
@@ -56,7 +56,7 @@ overflowing_impl!(OverflowingSub, overflowing_sub, isize);
 overflowing_impl!(OverflowingSub, overflowing_sub, i128);
 
 /// Performs multiplication with a flag for overflow.
-pub trait OverflowingMul: Sized + Mul<Self, Output = Self> {
+pub const trait OverflowingMul: Sized + [const] Mul<Self, Output = Self> {
     /// Returns a tuple of the product along with a boolean indicating whether an arithmetic overflow would occur.
     /// If an overflow would have occurred then the wrapped value is returned.
     fn overflowing_mul(&self, v: &Self) -> (Self, bool);
