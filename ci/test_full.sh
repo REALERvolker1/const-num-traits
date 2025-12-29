@@ -3,7 +3,7 @@
 set -e
 
 CRATE=num-traits
-MSRV=1.60
+MSRV=1.90
 
 get_rust_version() {
   local array=($(rustc --version));
@@ -31,7 +31,6 @@ FEATURES=(libm)
 echo "Testing supported features: ${FEATURES[*]}"
 
 cargo generate-lockfile
-check_version 1.63.0 || cargo update -p libm --precise 0.2.9
 
 set -x
 
