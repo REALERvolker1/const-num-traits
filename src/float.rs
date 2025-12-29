@@ -1,7 +1,7 @@
 use core::cmp::Ordering;
 use core::num::FpCategory;
 use core::ops::{Add, Div, Neg};
-
+#[cfg(any(feature = "std", feature = "libm"))]
 use ::core::intrinsics::const_eval_select;
 use core::f32;
 use core::f64;
@@ -11,7 +11,7 @@ use crate::{Num, NumCast, NumConstShim, ToPrimitive};
 pub(crate) const fn fpcategory_eq(a: FpCategory, b: FpCategory) -> bool {
     (a as i32) == (b as i32)
 }
-
+#[cfg(any(feature = "std", feature = "libm"))]
 macro_rules! const_libm_select {
     ($args:expr, $libm_name:ident, $std_name:path) => {
         const_eval_select(
@@ -754,16 +754,8 @@ pub const trait FloatCore:
     /// check(4.0f64, -2, 0.0625);
     /// check(-1.0f64, std::i32::MIN, 1.0);
     /// ```
-    #[inline]
-    fn powi(mut self, mut exp: i32) -> Self {
-        if exp < 0 {
-            exp = exp.wrapping_neg();
-            self = self.recip();
-        }
-        // It should always be possible to convert a positive `i32` to a `usize`.
-        // Note, `i32::MIN` will wrap and still be negative, so we need to convert
-        // to `u32` without sign-extension before growing to `usize`.
-        super::pow::pow_const(self, (exp as u32).to_usize().unwrap())
+    fn powi(self, exp: i32) -> Self {
+        powi_const(self, exp)
     }
 
     /// Converts to degrees, assuming the number is in radians.
@@ -827,6 +819,16 @@ pub const trait FloatCore:
     /// ```
     fn integer_decode(self) -> (u64, i16, i8);
 }
+const fn powi_const<F: [const] FloatCore>(mut s: F, mut exp: i32) -> F {
+    if exp < 0 {
+        exp = exp.wrapping_neg();
+        s = s.recip();
+    }
+    // It should always be possible to convert a positive `i32` to a `usize`.
+    // Note, `i32::MIN` will wrap and still be negative, so we need to convert
+    // to `u32` without sign-extension before growing to `usize`.
+    super::pow::pow_const(s, (exp as u32).to_usize().unwrap())
+}
 
 impl const FloatCore for f32 {
     constant! {
@@ -871,7 +873,10 @@ impl const FloatCore for f32 {
         Self::fract(self) -> Self;
         Self::abs(self) -> Self;
         Self::signum(self) -> Self;
-        Self::powi(self, n: i32) -> Self;
+    }
+    #[cfg(feature = "std")]
+    fn powi(self, exp: i32) -> Self {
+        const_eval_select((self, exp), powi_const, f32::powi)
     }
 
     #[cfg(all(not(feature = "std"), feature = "libm"))]
@@ -944,7 +949,10 @@ impl const FloatCore for f64 {
         Self::fract(self) -> Self;
         Self::abs(self) -> Self;
         Self::signum(self) -> Self;
-        Self::powi(self, n: i32) -> Self;
+    }
+    #[cfg(feature = "std")]
+    fn powi(self, exp: i32) -> Self {
+        const_eval_select((self, exp), powi_const, f64::powi)
     }
 
     #[cfg(all(not(feature = "std"), feature = "libm"))]
@@ -1969,7 +1977,7 @@ pub const trait Float:
         }
     }
 }
-
+#[cfg(any(feature = "std", feature = "libm"))]
 const fn const_log<F: const Float>(a: F, b: F) -> F {
     a.ln() / b.ln()
 }
