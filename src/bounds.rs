@@ -8,7 +8,7 @@ use core::{i128, i16, i32, i64, i8, isize};
 use core::{u128, u16, u32, u64, u8, usize};
 
 /// Numbers which have upper and lower bounds
-pub trait Bounded {
+pub const trait Bounded {
     // FIXME (#5527): These should be associated constants
     /// Returns the smallest finite number this type can represent
     fn min_value() -> Self;
@@ -17,26 +17,26 @@ pub trait Bounded {
 }
 
 /// Numbers which have lower bounds
-pub trait LowerBounded {
+pub const trait LowerBounded {
     /// Returns the smallest finite number this type can represent
     fn min_value() -> Self;
 }
 
 // FIXME: With a major version bump, this should be a supertrait instead
-impl<T: Bounded> LowerBounded for T {
+impl<T: [const] Bounded> const LowerBounded for T {
     fn min_value() -> T {
         Bounded::min_value()
     }
 }
 
 /// Numbers which have upper bounds
-pub trait UpperBounded {
+pub const trait UpperBounded {
     /// Returns the largest finite number this type can represent
     fn max_value() -> Self;
 }
 
 // FIXME: With a major version bump, this should be a supertrait instead
-impl<T: Bounded> UpperBounded for T {
+impl<T: [const] Bounded> const UpperBounded for T {
     fn max_value() -> T {
         Bounded::max_value()
     }
@@ -44,7 +44,7 @@ impl<T: Bounded> UpperBounded for T {
 
 macro_rules! bounded_impl {
     ($t:ty, $min:expr, $max:expr) => {
-        impl Bounded for $t {
+        impl const Bounded for $t {
             #[inline]
             fn min_value() -> $t {
                 $min
@@ -83,7 +83,7 @@ macro_rules! bounded_impl_nonzero_const {
 
 macro_rules! bounded_impl_nonzero {
     ($t:ty, $min:expr, $max:expr) => {
-        impl Bounded for $t {
+        impl const Bounded for $t {
             #[inline]
             fn min_value() -> $t {
                 // when MSRV is 1.70 we can use $t::MIN
@@ -115,7 +115,7 @@ bounded_impl_nonzero!(NonZeroI32, i32::MIN, i32::MAX);
 bounded_impl_nonzero!(NonZeroI64, i64::MIN, i64::MAX);
 bounded_impl_nonzero!(NonZeroI128, i128::MIN, i128::MAX);
 
-impl<T: Bounded> Bounded for Wrapping<T> {
+impl<T: [const] Bounded> const Bounded for Wrapping<T> {
     fn min_value() -> Self {
         Wrapping(T::min_value())
     }
@@ -143,7 +143,7 @@ macro_rules! for_each_tuple {
 
 macro_rules! bounded_tuple {
     ( $($name:ident)* ) => (
-        impl<$($name: Bounded,)*> Bounded for ($($name,)*) {
+        impl<$($name: [const] Bounded,)*> const Bounded for ($($name,)*) {
             #[inline]
             fn min_value() -> Self {
                 ($($name::min_value(),)*)
