@@ -20,7 +20,7 @@ features = ["std"]
 rustdoc-args = ["--generate-link-to-definition"]
 
 [dependencies]
-libm = { version = "*", optional = true }
+libm = { version = "*", optional = true, features = ["unstable"] }
 const_libm = { git = "https://github.com/REALERvolker1/const_libm.git" }
 
 [features]

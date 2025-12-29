@@ -269,11 +269,17 @@ impl fmt::Display for ParseFloatError {
 }
 
 fn str_to_ascii_lower_eq_str(a: &str, b: &str) -> bool {
-    a.len() == b.len()
-        && a.bytes().zip(b.bytes()).all(|(a, b)| {
-            let a_to_ascii_lower = a | (((b'A' <= a && a <= b'Z') as u8) << 5);
-            a_to_ascii_lower == b
-        })
+    if a.len() != b.len() {
+        return false;
+    }
+    a.bytes()
+        .zip(b.bytes())
+        .all(|(a, b)| a.to_ascii_lowercase() == b)
+    // a.len() == b.len()
+    //     && a.bytes().zip(b.bytes()).all(|(a, b)| {
+    //         let a_to_ascii_lower = a | (((b'A'..=b'Z').contains(&a) as u8) << 5);
+    //         a_to_ascii_lower == b
+    //     })
 }
 
 // FIXME: The standard library from_str_radix on floats was deprecated, so we're stuck
@@ -301,15 +307,15 @@ macro_rules! float_trait_impl {
                 if str_to_ascii_lower_eq_str(src, "inf")
                     || str_to_ascii_lower_eq_str(src, "infinity")
                 {
-                    return Ok(core::$t::INFINITY);
+                    return Ok($t::INFINITY);
                 } else if str_to_ascii_lower_eq_str(src, "-inf")
                     || str_to_ascii_lower_eq_str(src, "-infinity")
                 {
-                    return Ok(core::$t::NEG_INFINITY);
+                    return Ok($t::NEG_INFINITY);
                 } else if str_to_ascii_lower_eq_str(src, "nan") {
-                    return Ok(core::$t::NAN);
+                    return Ok($t::NAN);
                 } else if str_to_ascii_lower_eq_str(src, "-nan") {
-                    return Ok(-core::$t::NAN);
+                    return Ok(-$t::NAN);
                 }
 
                 fn slice_shift_char(src: &str) -> Option<(char, &str)> {
@@ -350,15 +356,15 @@ macro_rules! float_trait_impl {
                             // if we've not seen any non-zero digits.
                             if prev_sig != 0.0 {
                                 if is_positive && sig <= prev_sig
-                                    { return Ok(core::$t::INFINITY); }
+                                    { return Ok($t::INFINITY); }
                                 if !is_positive && sig >= prev_sig
-                                    { return Ok(core::$t::NEG_INFINITY); }
+                                    { return Ok($t::NEG_INFINITY); }
 
                                 // Detect overflow by reversing the shift-and-add process
                                 if is_positive && (prev_sig != (sig - digit as $t) / radix as $t)
-                                    { return Ok(core::$t::INFINITY); }
+                                    { return Ok($t::INFINITY); }
                                 if !is_positive && (prev_sig != (sig + digit as $t) / radix as $t)
-                                    { return Ok(core::$t::NEG_INFINITY); }
+                                    { return Ok($t::NEG_INFINITY); }
                             }
                             prev_sig = sig;
                         },
@@ -394,9 +400,9 @@ macro_rules! float_trait_impl {
                                 };
                                 // Detect overflow by comparing to last value
                                 if is_positive && sig < prev_sig
-                                    { return Ok(core::$t::INFINITY); }
+                                    { return Ok($t::INFINITY); }
                                 if !is_positive && sig > prev_sig
-                                    { return Ok(core::$t::NEG_INFINITY); }
+                                    { return Ok($t::NEG_INFINITY); }
                                 prev_sig = sig;
                             },
                             None => match c {
@@ -518,44 +524,44 @@ fn clamp_test() {
     assert_eq!(-1.0, clamp_min(-2.0, -1.0));
     assert_eq!(-1.0, clamp_max(1.0, -1.0));
     assert_eq!(-2.0, clamp_max(-2.0, -1.0));
-    assert!(clamp(::core::f32::NAN, -1.0, 1.0).is_nan());
-    assert!(clamp_min(::core::f32::NAN, 1.0).is_nan());
-    assert!(clamp_max(::core::f32::NAN, 1.0).is_nan());
+    assert!(clamp(f32::NAN, -1.0, 1.0).is_nan());
+    assert!(clamp_min(f32::NAN, 1.0).is_nan());
+    assert!(clamp_max(f32::NAN, 1.0).is_nan());
 }
 
 #[test]
 #[should_panic]
 #[cfg(debug_assertions)]
 fn clamp_nan_min() {
-    clamp(0., ::core::f32::NAN, 1.);
+    clamp(0., f32::NAN, 1.);
 }
 
 #[test]
 #[should_panic]
 #[cfg(debug_assertions)]
 fn clamp_nan_max() {
-    clamp(0., -1., ::core::f32::NAN);
+    clamp(0., -1., f32::NAN);
 }
 
 #[test]
 #[should_panic]
 #[cfg(debug_assertions)]
 fn clamp_nan_min_max() {
-    clamp(0., ::core::f32::NAN, ::core::f32::NAN);
+    clamp(0., f32::NAN, f32::NAN);
 }
 
 #[test]
 #[should_panic]
 #[cfg(debug_assertions)]
 fn clamp_min_nan_min() {
-    clamp_min(0., ::core::f32::NAN);
+    clamp_min(0., f32::NAN);
 }
 
 #[test]
 #[should_panic]
 #[cfg(debug_assertions)]
 fn clamp_max_nan_max() {
-    clamp_max(0., ::core::f32::NAN);
+    clamp_max(0., f32::NAN);
 }
 
 #[test]
@@ -580,21 +586,12 @@ fn from_str_radix_multi_byte_fail() {
 
 #[test]
 fn from_str_radix_ignore_case() {
-    assert_eq!(
-        f32::from_str_radix("InF", 16).unwrap(),
-        ::core::f32::INFINITY
-    );
-    assert_eq!(
-        f32::from_str_radix("InfinitY", 16).unwrap(),
-        ::core::f32::INFINITY
-    );
-    assert_eq!(
-        f32::from_str_radix("-InF", 8).unwrap(),
-        ::core::f32::NEG_INFINITY
-    );
+    assert_eq!(f32::from_str_radix("InF", 16).unwrap(), f32::INFINITY);
+    assert_eq!(f32::from_str_radix("InfinitY", 16).unwrap(), f32::INFINITY);
+    assert_eq!(f32::from_str_radix("-InF", 8).unwrap(), f32::NEG_INFINITY);
     assert_eq!(
         f32::from_str_radix("-InfinitY", 8).unwrap(),
-        ::core::f32::NEG_INFINITY
+        f32::NEG_INFINITY
     );
     assert!(f32::from_str_radix("nAn", 4).unwrap().is_nan());
     assert!(f32::from_str_radix("-nAn", 4).unwrap().is_nan());
