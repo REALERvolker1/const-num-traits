@@ -28,7 +28,8 @@
     core_intrinsics,
     const_eval_select,
     const_convert,
-    const_clone
+    const_clone,
+    core_float_math
 )]
 
 // Need to explicitly bring the crate in for inherent float methods
@@ -41,6 +42,7 @@ use core::num::Wrapping;
 use core::ops::{Add, Div, Mul, Rem, Sub};
 use core::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
+use crate::__non_backwards_compatible_required_reexports::NumConstShim;
 pub use crate::bounds::Bounded;
 #[cfg(any(feature = "std", feature = "libm"))]
 pub use crate::float::Float;
@@ -76,13 +78,17 @@ pub mod pow;
 pub mod real;
 pub mod sign;
 
-pub(crate) const trait NumConstShim:
-    [const] PartialEq + [const] Zero + [const] One + [const] NumOps
-{
-}
-impl<T> const NumConstShim for T where
-    T: [const] PartialEq + [const] Zero + [const] One + [const] NumOps
-{
+#[doc(hidden)]
+pub mod __non_backwards_compatible_required_reexports {
+    use super::*;
+    pub const trait NumConstShim:
+        [const] PartialEq + [const] Zero + [const] One + [const] NumOps
+    {
+    }
+    impl<T> const NumConstShim for T where
+        T: [const] PartialEq + [const] Zero + [const] One + [const] NumOps
+    {
+    }
 }
 
 /// The base trait for numeric types, covering `0` and `1` values,

@@ -202,16 +202,6 @@ pub fn pow<T: Clone + One + Mul<T, Output = T>>(mut base: T, mut exp: usize) -> 
 /// Raises a value to the power of exp, using exponentiation by squaring.
 ///
 /// Note that `0⁰` (`pow(0, 0)`) returns `1`. Mathematically this is undefined.
-///
-/// # Example
-///
-/// ```rust,no_run
-/// use num_traits::pow_const;
-///
-/// assert_eq!(pow_const(2i8, 4), 16);
-/// assert_eq!(pow_const(6u8, 3), 216);
-/// assert_eq!(pow_const(0u8, 0), 1); // Be aware if this case affects you
-/// ```
 pub(crate) const fn pow_const<T: Copy + [const] One + [const] Mul<T, Output = T>>(
     mut base: T,
     mut exp: usize,

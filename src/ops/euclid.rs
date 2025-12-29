@@ -1,5 +1,8 @@
 use ::core::marker::Destruct;
+use ::std::intrinsics::const_eval_select;
 use core::ops::{Div, Rem};
+
+use crate::float::FloatCore;
 
 pub const trait Euclid:
     Sized + [const] Div<Self, Output = Self> + [const] Rem<Self, Output = Self>
@@ -74,7 +77,7 @@ pub const trait Euclid:
 
 macro_rules! euclid_forward_impl {
     ($($t:ty)*) => {$(
-        impl Euclid for $t {
+        impl const Euclid for $t {
             #[inline]
             fn div_euclid(&self, v: &$t) -> Self {
                 <$t>::div_euclid(*self, *v)
@@ -91,50 +94,44 @@ macro_rules! euclid_forward_impl {
 euclid_forward_impl!(isize i8 i16 i32 i64 i128);
 euclid_forward_impl!(usize u8 u16 u32 u64 u128);
 
-#[cfg(feature = "std")]
-euclid_forward_impl!(f32 f64);
-
-#[cfg(not(feature = "std"))]
-impl Euclid for f32 {
-    #[inline]
-    fn div_euclid(&self, v: &f32) -> f32 {
-        let q = <f32 as crate::float::FloatCore>::trunc(self / v);
-        if self % v < 0.0 {
-            return if *v > 0.0 { q - 1.0 } else { q + 1.0 };
-        }
+const fn div_euclid_in_const<F: const FloatCore>(s: F, v: F) -> F {
+    let q = (s / v).trunc();
+    if s % v >= F::zero() {
         q
+    } else if v > F::zero() {
+        q - F::one()
+    } else {
+        q + F::one()
     }
-
-    #[inline]
-    fn rem_euclid(&self, v: &f32) -> f32 {
-        let r = self % v;
-        if r < 0.0 {
-            r + <f32 as crate::float::FloatCore>::abs(*v)
-        } else {
-            r
-        }
+}
+const fn rem_euclid_in_const<F: const FloatCore>(s: F, v: F) -> F {
+    let r = s % v;
+    if r < F::zero() {
+        r + v.abs()
+    } else {
+        r
     }
 }
 
 #[cfg(not(feature = "std"))]
-impl Euclid for f64 {
-    #[inline]
-    fn div_euclid(&self, v: &f64) -> f64 {
-        let q = <f64 as crate::float::FloatCore>::trunc(self / v);
-        if self % v < 0.0 {
-            return if *v > 0.0 { q - 1.0 } else { q + 1.0 };
-        }
-        q
-    }
+use ::core::{f32::math as emathf, f64::math as emathd};
+#[cfg(feature = "std")]
+use ::std::primitive::{f32 as emathf, f64 as emathd};
 
-    #[inline]
-    fn rem_euclid(&self, v: &f64) -> f64 {
-        let r = self % v;
-        if r < 0.0 {
-            r + <f64 as crate::float::FloatCore>::abs(*v)
-        } else {
-            r
-        }
+impl const Euclid for f32 {
+    fn div_euclid(&self, v: &Self) -> Self {
+        const_eval_select((*self, *v), div_euclid_in_const, emathf::div_euclid)
+    }
+    fn rem_euclid(&self, v: &Self) -> Self {
+        const_eval_select((*self, *v), rem_euclid_in_const, emathf::rem_euclid)
+    }
+}
+impl const Euclid for f64 {
+    fn div_euclid(&self, v: &Self) -> Self {
+        const_eval_select((*self, *v), div_euclid_in_const, emathd::div_euclid)
+    }
+    fn rem_euclid(&self, v: &Self) -> Self {
+        const_eval_select((*self, *v), rem_euclid_in_const, emathd::rem_euclid)
     }
 }
 
@@ -180,7 +177,7 @@ pub const trait CheckedEuclid: [const] Euclid {
 
 macro_rules! checked_euclid_forward_impl {
     ($($t:ty)*) => {$(
-        impl CheckedEuclid for $t {
+        impl const CheckedEuclid for $t {
             #[inline]
             fn checked_div_euclid(&self, v: &$t) -> Option<Self> {
                 <$t>::checked_div_euclid(*self, *v)
