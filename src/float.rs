@@ -1,10 +1,10 @@
-use core::cmp::Ordering;
-use core::num::FpCategory;
-use core::ops::{Add, Div, Neg};
 #[cfg(any(feature = "std", feature = "libm"))]
 use ::core::intrinsics::const_eval_select;
+use core::cmp::Ordering;
 use core::f32;
 use core::f64;
+use core::num::FpCategory;
+use core::ops::{Add, Div, Neg};
 
 use crate::{Num, NumCast, NumConstShim, ToPrimitive};
 
@@ -196,7 +196,6 @@ pub const trait FloatCore:
     /// check(f64::NAN, true);
     /// check(0.0f64, false);
     /// ```
-    #[inline]
     #[allow(clippy::eq_op)]
     fn is_nan(self) -> bool {
         self != self
@@ -221,7 +220,6 @@ pub const trait FloatCore:
     /// check(f64::NEG_INFINITY, true);
     /// check(0.0f64, false);
     /// ```
-    #[inline]
     fn is_infinite(self) -> bool {
         self == Self::infinity() || self == Self::neg_infinity()
     }
@@ -244,7 +242,6 @@ pub const trait FloatCore:
     /// check(f64::MIN_POSITIVE, true);
     /// check(f64::NAN, false);
     /// ```
-    #[inline]
     fn is_finite(self) -> bool {
         !(self.is_nan() || self.is_infinite())
     }
@@ -267,7 +264,6 @@ pub const trait FloatCore:
     /// check(f64::MIN_POSITIVE, true);
     /// check(0.0f64, false);
     /// ```
-    #[inline]
     fn is_normal(self) -> bool {
         fpcategory_eq(self.classify(), FpCategory::Normal)
     }
@@ -293,7 +289,6 @@ pub const trait FloatCore:
     /// assert!(lower_than_min.is_subnormal());
     /// ```
     /// [subnormal]: https://en.wikipedia.org/wiki/Subnormal_number
-    #[inline]
     fn is_subnormal(self) -> bool {
         fpcategory_eq(self.classify(), FpCategory::Subnormal)
     }
@@ -344,7 +339,6 @@ pub const trait FloatCore:
     /// check(-1.1f64, -2.0);
     /// check(f64::MIN, f64::MIN);
     /// ```
-    #[inline]
     fn floor(self) -> Self {
         let f = self.fract();
         if f.is_nan() || f.is_zero() {
@@ -378,7 +372,6 @@ pub const trait FloatCore:
     /// check(-1.1f64, -1.0);
     /// check(f64::MIN, f64::MIN);
     /// ```
-    #[inline]
     fn ceil(self) -> Self {
         let f = self.fract();
         if f.is_nan() || f.is_zero() {
@@ -411,7 +404,6 @@ pub const trait FloatCore:
     /// check(-0.6f64, -1.0);
     /// check(f64::MIN, f64::MIN);
     /// ```
-    #[inline]
     fn round(self) -> Self {
         let one = Self::one();
         let h = Self::from(0.5).expect("Unable to cast from 0.5");
@@ -419,11 +411,7 @@ pub const trait FloatCore:
         if f.is_nan() || f.is_zero() {
             self
         } else if self > Self::zero() {
-            if f < h {
-                self - f
-            } else {
-                self - f + one
-            }
+            if f < h { self - f } else { self - f + one }
         } else if -f < h {
             self - f
         } else {
@@ -453,14 +441,9 @@ pub const trait FloatCore:
     /// check(-1.1f64, -1.0);
     /// check(f64::MIN, f64::MIN);
     /// ```
-    #[inline]
     fn trunc(self) -> Self {
         let f = self.fract();
-        if f.is_nan() {
-            self
-        } else {
-            self - f
-        }
+        if f.is_nan() { self } else { self - f }
     }
 
     /// Returns the fractional part of a number.
@@ -485,7 +468,6 @@ pub const trait FloatCore:
     /// check(-1.25f64, -0.25);
     /// check(f64::MIN, 0.0);
     /// ```
-    #[inline]
     fn fract(self) -> Self {
         if self.is_zero() {
             Self::zero()
@@ -514,7 +496,6 @@ pub const trait FloatCore:
     /// check(-1.0f64, 1.0);
     /// check(f64::MIN, f64::MAX);
     /// ```
-    #[inline]
     fn abs(self) -> Self {
         if self.is_sign_positive() {
             return self;
@@ -548,7 +529,6 @@ pub const trait FloatCore:
     /// check(-3.0f64, -1.0);
     /// check(f64::MIN, -1.0);
     /// ```
-    #[inline]
     fn signum(self) -> Self {
         if self.is_nan() {
             Self::nan()
@@ -581,7 +561,6 @@ pub const trait FloatCore:
     /// check(f64::NAN, true);
     /// check(-f64::NAN, false);
     /// ```
-    #[inline]
     fn is_sign_positive(self) -> bool {
         !self.is_sign_negative()
     }
@@ -608,7 +587,6 @@ pub const trait FloatCore:
     /// check(f64::NAN, false);
     /// check(-f64::NAN, true);
     /// ```
-    #[inline]
     fn is_sign_negative(self) -> bool {
         let (_, _, sign) = self.integer_decode();
         sign < 0
@@ -633,7 +611,6 @@ pub const trait FloatCore:
     /// check(1.0f64, -2.0, -2.0);
     /// check(1.0f64, f64::NAN, 1.0);
     /// ```
-    #[inline]
     fn min(self, other: Self) -> Self {
         if self.is_nan() {
             return other;
@@ -641,11 +618,7 @@ pub const trait FloatCore:
         if other.is_nan() {
             return self;
         }
-        if self < other {
-            self
-        } else {
-            other
-        }
+        if self < other { self } else { other }
     }
 
     /// Returns the maximum of the two numbers.
@@ -667,7 +640,6 @@ pub const trait FloatCore:
     /// check(-1.0f64, 2.0, 2.0);
     /// check(-1.0f64, f64::NAN, -1.0);
     /// ```
-    #[inline]
     fn max(self, other: Self) -> Self {
         if self.is_nan() {
             return other;
@@ -675,11 +647,7 @@ pub const trait FloatCore:
         if other.is_nan() {
             return self;
         }
-        if self > other {
-            self
-        } else {
-            other
-        }
+        if self > other { self } else { other }
     }
 
     /// A value bounded by a minimum and a maximum
@@ -730,7 +698,6 @@ pub const trait FloatCore:
     /// check(-0.25f64, -4.0);
     /// check(-0.0f64, f64::NEG_INFINITY);
     /// ```
-    #[inline]
     fn recip(self) -> Self {
         Self::one() / self
     }
@@ -829,6 +796,11 @@ const fn powi_const<F: [const] FloatCore>(mut s: F, mut exp: i32) -> F {
     // to `u32` without sign-extension before growing to `usize`.
     super::pow::pow_const(s, (exp as u32).to_usize().unwrap())
 }
+#[allow(unused)]
+const fn fract_scalar_const<F: [const] FloatCore>(s: F) -> F {
+    let trunc = s.trunc();
+    s - trunc
+}
 
 impl const FloatCore for f32 {
     constant! {
@@ -842,7 +814,6 @@ impl const FloatCore for f32 {
         max_value() -> f32::MAX;
     }
 
-    #[inline]
     fn integer_decode(self) -> (u64, i16, i8) {
         integer_decode_f32(self)
     }
@@ -901,8 +872,7 @@ impl const FloatCore for f32 {
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
     fn fract(self) -> Self {
-        let trunc = FloatCore::trunc(self);
-        self - trunc
+        fract_scalar_const(self)
     }
 }
 
@@ -918,7 +888,6 @@ impl const FloatCore for f64 {
         max_value() -> f64::MAX;
     }
 
-    #[inline]
     fn integer_decode(self) -> (u64, i16, i8) {
         integer_decode_f64(self)
     }
@@ -977,8 +946,7 @@ impl const FloatCore for f64 {
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
     fn fract(self) -> Self {
-        let trunc = FloatCore::trunc(self);
-        self - trunc
+        fract_scalar_const(self)
     }
 }
 
@@ -1200,7 +1168,6 @@ pub const trait Float:
     /// assert!(lower_than_min.is_subnormal());
     /// ```
     /// [subnormal]: https://en.wikipedia.org/wiki/Subnormal_number
-    #[inline]
     fn is_subnormal(self) -> bool {
         fpcategory_eq(self.classify(), FpCategory::Subnormal)
     }
@@ -1506,7 +1473,10 @@ pub const trait Float:
     /// assert!(abs_difference_10 < 1e-10);
     /// assert!(abs_difference_2 < 1e-10);
     /// ```
-    fn log(self, base: Self) -> Self;
+    #[inline]
+    fn log(self, base: Self) -> Self {
+        const_log(self, base)
+    }
 
     /// Returns the base 2 logarithm of the number.
     ///
@@ -1547,7 +1517,6 @@ pub const trait Float:
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[inline]
     fn to_degrees(self) -> Self {
         let halfpi = Self::zero().acos();
         let ninety = Self::from(90u8).unwrap();
@@ -1565,7 +1534,6 @@ pub const trait Float:
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
-    #[inline]
     fn to_radians(self) -> Self {
         let halfpi = Self::zero().acos();
         let ninety = Self::from(90u8).unwrap();
@@ -1978,21 +1946,32 @@ pub const trait Float:
     }
 }
 #[cfg(any(feature = "std", feature = "libm"))]
-const fn const_log<F: const Float>(a: F, b: F) -> F {
-    a.ln() / b.ln()
+#[inline]
+const fn const_log<F: [const] Float>(f: F, base: F) -> F {
+    f.ln() / base.ln()
 }
 
 #[cfg(any(feature = "std", feature = "libm"))]
 impl const Float for f32 {
-    constant! {
-        nan() -> Self::NAN;
-        infinity() -> Self::INFINITY;
-        neg_infinity() -> Self::NEG_INFINITY;
-        neg_zero() -> -0.0;
-        min_value() -> Self::MIN;
-        min_positive_value() -> Self::MIN_POSITIVE;
-        epsilon() -> Self::EPSILON;
-        max_value() -> Self::MAX;
+    // constant! {
+    //     nan() -> Self::NAN;
+    //     infinity() -> Self::INFINITY;
+    //     neg_infinity() -> Self::NEG_INFINITY;
+    //     neg_zero() -> -0.0;
+    //     min_value() -> Self::MIN;
+    //     min_positive_value() -> Self::MIN_POSITIVE;
+    //     epsilon() -> Self::EPSILON;
+    //     max_value() -> Self::MAX;
+    // }
+    forward! {
+        FloatCore::nan() -> Self;
+        FloatCore::infinity() -> Self;
+        FloatCore::neg_infinity() -> Self;
+        FloatCore::neg_zero() -> Self;
+        FloatCore::min_value() -> Self;
+        FloatCore::min_positive_value() -> Self;
+        FloatCore::epsilon() -> Self;
+        FloatCore::max_value() -> Self;
     }
     forward! {
         FloatCore::is_nan(self) -> bool;
@@ -2048,7 +2027,7 @@ impl const Float for f32 {
         const_libm_select!((self,), cbrtf, f32::cbrt)
     }
     fn copysign(self, sign: Self) -> Self {
-        self.copysign(sign)
+        const_libm_select!((self, sign), copysignf, f32::copysign)
     }
     fn mul_add(self, a: Self, b: Self) -> Self {
         const_libm_select!((self, a, b), fmaf, f32::mul_add)
@@ -2080,7 +2059,10 @@ impl const Float for f32 {
     fn log(self, base: Self) -> Self {
         #[cfg(feature = "std")]
         {
-            const_eval_select((self, base), const_log, f32::log)
+            const fn in_const(s: f32, b: f32) -> f32 {
+                Float::log(s as f64, b as f64) as f32
+            }
+            const_eval_select((self, base), in_const, f32::log)
         }
         #[cfg(not(feature = "std"))]
         {
@@ -2117,15 +2099,15 @@ impl const Float for f32 {
 }
 #[cfg(any(feature = "std", feature = "libm"))]
 impl const Float for f64 {
-    constant! {
-        nan() -> Self::NAN;
-        infinity() -> Self::INFINITY;
-        neg_infinity() -> Self::NEG_INFINITY;
-        neg_zero() -> -0.0;
-        min_value() -> Self::MIN;
-        min_positive_value() -> Self::MIN_POSITIVE;
-        epsilon() -> Self::EPSILON;
-        max_value() -> Self::MAX;
+    forward! {
+        FloatCore::nan() -> Self;
+        FloatCore::infinity() -> Self;
+        FloatCore::neg_infinity() -> Self;
+        FloatCore::neg_zero() -> Self;
+        FloatCore::min_value() -> Self;
+        FloatCore::min_positive_value() -> Self;
+        FloatCore::epsilon() -> Self;
+        FloatCore::max_value() -> Self;
     }
     forward! {
         FloatCore::is_nan(self) -> bool;
@@ -2181,7 +2163,7 @@ impl const Float for f64 {
         const_libm_select!((self,), cbrt, f64::cbrt)
     }
     fn copysign(self, sign: Self) -> Self {
-        self.copysign(sign)
+        const_libm_select!((self, sign), copysign, f64::copysign)
     }
     fn mul_add(self, a: Self, b: Self) -> Self {
         const_libm_select!((self, a, b), fma, f64::mul_add)
@@ -2283,17 +2265,14 @@ macro_rules! float_const_impl {
         pub const trait FloatConst {
             $(#[$doc] fn $constant() -> Self;)+
             #[doc = "Return the full circle constant `τ`."]
-            #[inline]
             fn TAU() -> Self where Self: Sized + [const] Add<Self, Output = Self> {
                 Self::PI() + Self::PI()
             }
             #[doc = "Return `log10(2.0)`."]
-            #[inline]
             fn LOG10_2() -> Self where Self: Sized + [const] Div<Self, Output = Self> {
                 Self::LN_2() / Self::LN_10()
             }
             #[doc = "Return `log2(10.0)`."]
-            #[inline]
             fn LOG2_10() -> Self where Self: Sized + [const] Div<Self, Output = Self> {
                 Self::LN_10() / Self::LN_2()
             }
@@ -2407,13 +2386,11 @@ pub const trait TotalOrder {
 macro_rules! totalorder_impl {
     ($T:ident, $I:ident, $U:ident, $bits:expr) => {
         impl const TotalOrder for $T {
-            #[inline]
             #[cfg(has_total_cmp)]
             fn total_cmp(&self, other: &Self) -> Ordering {
                 // Forward to the core implementation
                 Self::total_cmp(&self, other)
             }
-            #[inline]
             #[cfg(not(has_total_cmp))]
             fn total_cmp(&self, other: &Self) -> Ordering {
                 // Backport the core implementation (since 1.62)
