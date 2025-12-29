@@ -1,12 +1,11 @@
+use ::core::hint::cold_path;
 #[cfg(any(feature = "std", feature = "libm"))]
 use ::core::intrinsics::const_eval_select;
 use core::cmp::Ordering;
-use core::f32;
-use core::f64;
 use core::num::FpCategory;
-use core::ops::{Add, Div, Neg};
+use core::ops::Neg;
 
-use crate::{Num, NumCast, NumConstShim, ToPrimitive};
+use crate::{Num, NumCast, NumConstShim};
 
 pub(crate) const fn fpcategory_eq(a: FpCategory, b: FpCategory) -> bool {
     (a as i32) == (b as i32)
@@ -342,6 +341,7 @@ pub const trait FloatCore:
     fn floor(self) -> Self {
         let f = self.fract();
         if f.is_nan() || f.is_zero() {
+            cold_path();
             self
         } else if self < Self::zero() {
             self - f - Self::one()
@@ -375,6 +375,7 @@ pub const trait FloatCore:
     fn ceil(self) -> Self {
         let f = self.fract();
         if f.is_nan() || f.is_zero() {
+            cold_path();
             self
         } else if self > Self::zero() {
             self - f + Self::one()
@@ -409,6 +410,7 @@ pub const trait FloatCore:
         let h = Self::from(0.5).expect("Unable to cast from 0.5");
         let f = self.fract();
         if f.is_nan() || f.is_zero() {
+            cold_path();
             self
         } else if self > Self::zero() {
             if f < h { self - f } else { self - f + one }
@@ -443,7 +445,12 @@ pub const trait FloatCore:
     /// ```
     fn trunc(self) -> Self {
         let f = self.fract();
-        if f.is_nan() { self } else { self - f }
+        if f.is_nan() {
+            cold_path();
+            self
+        } else {
+            self - f
+        }
     }
 
     /// Returns the fractional part of a number.
@@ -470,6 +477,7 @@ pub const trait FloatCore:
     /// ```
     fn fract(self) -> Self {
         if self.is_zero() {
+            cold_path();
             Self::zero()
         } else {
             self % Self::one()
@@ -613,9 +621,11 @@ pub const trait FloatCore:
     /// ```
     fn min(self, other: Self) -> Self {
         if self.is_nan() {
+            cold_path();
             return other;
         }
         if other.is_nan() {
+            cold_path();
             return self;
         }
         if self < other { self } else { other }
@@ -642,9 +652,11 @@ pub const trait FloatCore:
     /// ```
     fn max(self, other: Self) -> Self {
         if self.is_nan() {
+            cold_path();
             return other;
         }
         if other.is_nan() {
+            cold_path();
             return self;
         }
         if self > other { self } else { other }
@@ -788,13 +800,14 @@ pub const trait FloatCore:
 }
 const fn powi_const<F: [const] FloatCore>(mut s: F, mut exp: i32) -> F {
     if exp < 0 {
+        cold_path();
         exp = exp.wrapping_neg();
         s = s.recip();
     }
     // It should always be possible to convert a positive `i32` to a `usize`.
     // Note, `i32::MIN` will wrap and still be negative, so we need to convert
     // to `u32` without sign-extension before growing to `usize`.
-    super::pow::pow_const(s, (exp as u32).to_usize().unwrap())
+    super::pow::pow_const(s, exp as usize)
 }
 #[allow(unused)]
 const fn fract_scalar_const<F: [const] FloatCore>(s: F) -> F {
@@ -2259,73 +2272,114 @@ const fn integer_decode_f64(f: f64) -> (u64, i16, i8) {
     (mantissa, exponent, sign)
 }
 
-macro_rules! float_const_impl {
-    ($(#[$doc:meta] $constant:ident,)+) => (
-        #[allow(non_snake_case)]
-        pub const trait FloatConst {
-            $(#[$doc] fn $constant() -> Self;)+
-            #[doc = "Return the full circle constant `τ`."]
-            fn TAU() -> Self where Self: Sized + [const] Add<Self, Output = Self> {
-                Self::PI() + Self::PI()
-            }
-            #[doc = "Return `log10(2.0)`."]
-            fn LOG10_2() -> Self where Self: Sized + [const] Div<Self, Output = Self> {
-                Self::LN_2() / Self::LN_10()
-            }
-            #[doc = "Return `log2(10.0)`."]
-            fn LOG2_10() -> Self where Self: Sized + [const] Div<Self, Output = Self> {
-                Self::LN_10() / Self::LN_2()
-            }
-        }
-        float_const_impl! { @float f32, $($constant,)+ }
-        float_const_impl! { @float f64, $($constant,)+ }
-    );
-    (@float $T:ident, $($constant:ident,)+) => (
-        impl const FloatConst for $T {
-            constant! {
-                $( $constant() -> $T::consts::$constant; )+
-                TAU() -> 6.28318530717958647692528676655900577;
-                LOG10_2() -> 0.301029995663981195213738894724493027;
-                LOG2_10() -> 3.32192809488736234787031942948939018;
-            }
-        }
-    );
-}
-
-float_const_impl! {
+#[allow(non_snake_case)]
+pub const trait FloatConst {
+    #[doc = "Return the full circle constant `τ`."]
+    fn TAU() -> Self;
+    #[doc = "Return `log10(2.0)`."]
+    fn LOG10_2() -> Self;
+    #[doc = "Return `log2(10.0)`."]
+    fn LOG2_10() -> Self;
     #[doc = "Return Euler’s number."]
-    E,
+    fn E() -> Self;
     #[doc = "Return `1.0 / π`."]
-    FRAC_1_PI,
+    fn FRAC_1_PI() -> Self;
     #[doc = "Return `1.0 / sqrt(2.0)`."]
-    FRAC_1_SQRT_2,
+    fn FRAC_1_SQRT_2() -> Self;
     #[doc = "Return `2.0 / π`."]
-    FRAC_2_PI,
+    fn FRAC_2_PI() -> Self;
     #[doc = "Return `2.0 / sqrt(π)`."]
-    FRAC_2_SQRT_PI,
+    fn FRAC_2_SQRT_PI() -> Self;
     #[doc = "Return `π / 2.0`."]
-    FRAC_PI_2,
+    fn FRAC_PI_2() -> Self;
     #[doc = "Return `π / 3.0`."]
-    FRAC_PI_3,
+    fn FRAC_PI_3() -> Self;
     #[doc = "Return `π / 4.0`."]
-    FRAC_PI_4,
+    fn FRAC_PI_4() -> Self;
     #[doc = "Return `π / 6.0`."]
-    FRAC_PI_6,
+    fn FRAC_PI_6() -> Self;
     #[doc = "Return `π / 8.0`."]
-    FRAC_PI_8,
+    fn FRAC_PI_8() -> Self;
     #[doc = "Return `ln(10.0)`."]
-    LN_10,
+    fn LN_10() -> Self;
     #[doc = "Return `ln(2.0)`."]
-    LN_2,
+    fn LN_2() -> Self;
     #[doc = "Return `log10(e)`."]
-    LOG10_E,
+    fn LOG10_E() -> Self;
     #[doc = "Return `log2(e)`."]
-    LOG2_E,
+    fn LOG2_E() -> Self;
     #[doc = "Return Archimedes’ constant `π`."]
-    PI,
+    fn PI() -> Self;
     #[doc = "Return `sqrt(2.0)`."]
-    SQRT_2,
+    fn SQRT_2() -> Self;
 }
+macro_rules! floatconst {
+    ($f:ident) => {
+        impl const FloatConst for $f {
+            fn E() -> Self {
+                ::core::$f::consts::E
+            }
+            fn FRAC_1_PI() -> Self {
+                ::core::$f::consts::FRAC_1_PI
+            }
+            fn FRAC_1_SQRT_2() -> Self {
+                ::core::$f::consts::FRAC_1_SQRT_2
+            }
+            fn FRAC_2_PI() -> Self {
+                ::core::$f::consts::FRAC_2_PI
+            }
+            fn FRAC_2_SQRT_PI() -> Self {
+                ::core::$f::consts::FRAC_2_SQRT_PI
+            }
+            fn FRAC_PI_2() -> Self {
+                ::core::$f::consts::FRAC_PI_2
+            }
+            fn FRAC_PI_3() -> Self {
+                ::core::$f::consts::FRAC_PI_3
+            }
+            fn FRAC_PI_4() -> Self {
+                ::core::$f::consts::FRAC_PI_4
+            }
+            fn FRAC_PI_6() -> Self {
+                ::core::$f::consts::FRAC_PI_6
+            }
+            fn FRAC_PI_8() -> Self {
+                ::core::$f::consts::FRAC_PI_8
+            }
+            fn LN_10() -> Self {
+                ::core::$f::consts::LN_10
+            }
+            fn LN_2() -> Self {
+                ::core::$f::consts::LN_2
+            }
+            fn LOG10_2() -> Self {
+                ::core::$f::consts::LOG10_2
+            }
+            fn LOG10_E() -> Self {
+                ::core::$f::consts::LOG10_E
+            }
+            fn LOG2_10() -> Self {
+                ::core::$f::consts::LOG2_10
+            }
+            fn LOG2_E() -> Self {
+                ::core::$f::consts::LOG2_E
+            }
+            fn PI() -> Self {
+                ::core::$f::consts::PI
+            }
+            fn SQRT_2() -> Self {
+                ::core::$f::consts::SQRT_2
+            }
+            fn TAU() -> Self {
+                ::core::$f::consts::TAU
+            }
+        }
+    };
+}
+// floatconst!(f16);
+floatconst!(f32);
+floatconst!(f64);
+// floatconst!(f128);
 
 /// Trait for floating point numbers that provide an implementation
 /// of the `totalOrder` predicate as defined in the IEEE 754 (2008 revision)
@@ -2383,30 +2437,17 @@ pub const trait TotalOrder {
     /// ```
     fn total_cmp(&self, other: &Self) -> Ordering;
 }
-macro_rules! totalorder_impl {
-    ($T:ident, $I:ident, $U:ident, $bits:expr) => {
-        impl const TotalOrder for $T {
-            #[cfg(has_total_cmp)]
-            fn total_cmp(&self, other: &Self) -> Ordering {
-                // Forward to the core implementation
-                Self::total_cmp(&self, other)
-            }
-            #[cfg(not(has_total_cmp))]
-            fn total_cmp(&self, other: &Self) -> Ordering {
-                // Backport the core implementation (since 1.62)
-                let mut left = self.to_bits() as $I;
-                let mut right = other.to_bits() as $I;
 
-                left ^= (((left >> ($bits - 1)) as $U) >> 1) as $I;
-                right ^= (((right >> ($bits - 1)) as $U) >> 1) as $I;
-
-                left.cmp(&right)
-            }
-        }
-    };
+impl const TotalOrder for f32 {
+    fn total_cmp(&self, other: &Self) -> Ordering {
+        self.total_cmp(other)
+    }
 }
-totalorder_impl!(f64, i64, u64, 64);
-totalorder_impl!(f32, i32, u32, 32);
+impl const TotalOrder for f64 {
+    fn total_cmp(&self, other: &Self) -> Ordering {
+        self.total_cmp(other)
+    }
+}
 
 #[cfg(test)]
 mod tests {

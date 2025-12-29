@@ -30,7 +30,8 @@
     const_convert,
     const_clone,
     core_float_math,
-    derive_const
+    derive_const,
+    cold_path
 )]
 
 // Need to explicitly bring the crate in for inherent float methods
@@ -49,8 +50,8 @@ pub use crate::bounds::Bounded;
 pub use crate::float::Float;
 pub use crate::float::FloatConst;
 // pub use real::{FloatCore, Real}; // NOTE: Don't do this, it breaks `use num_traits::*;`.
-pub use crate::cast::{cast, AsPrimitive, FromPrimitive, NumCast, ToPrimitive};
-pub use crate::identities::{one, zero, ConstOne, ConstZero, One, Zero};
+pub use crate::cast::{AsPrimitive, FromPrimitive, NumCast, ToPrimitive, cast};
+pub use crate::identities::{ConstOne, ConstZero, One, Zero, one, zero};
 pub use crate::int::PrimInt;
 pub use crate::ops::bytes::{FromBytes, ToBytes};
 pub use crate::ops::checked::{
@@ -63,8 +64,8 @@ pub use crate::ops::saturating::{Saturating, SaturatingAdd, SaturatingMul, Satur
 pub use crate::ops::wrapping::{
     WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
 };
-pub use crate::pow::{checked_pow, pow, Pow};
-pub use crate::sign::{abs, abs_sub, signum, Signed, Unsigned};
+pub use crate::pow::{Pow, checked_pow, pow};
+pub use crate::sign::{Signed, Unsigned, abs, abs_sub, signum};
 
 #[macro_use]
 mod macros;
@@ -481,11 +482,7 @@ pub const fn clamp<T: [const] PartialOrd + [const] Destruct>(input: T, min: T, m
 #[allow(clippy::eq_op)]
 pub const fn clamp_min<T: [const] PartialOrd + [const] Destruct>(input: T, min: T) -> T {
     debug_assert!(min == min, "min must not be NAN");
-    if input < min {
-        min
-    } else {
-        input
-    }
+    if input < min { min } else { input }
 }
 
 /// A value bounded by a maximum value
@@ -499,11 +496,7 @@ pub const fn clamp_min<T: [const] PartialOrd + [const] Destruct>(input: T, min: 
 #[allow(clippy::eq_op)]
 pub const fn clamp_max<T: [const] PartialOrd + [const] Destruct>(input: T, max: T) -> T {
     debug_assert!(max == max, "max must not be NAN");
-    if input > max {
-        max
-    } else {
-        input
-    }
+    if input > max { max } else { input }
 }
 
 #[test]
