@@ -1,11 +1,14 @@
 use core::num::Wrapping;
 use core::ops::Neg;
 
+use crate::__non_backwards_compatible_required_reexports::NumConstShim;
 use crate::float::FloatCore;
 use crate::Num;
 
 /// Useful functions for signed numbers (i.e. numbers that can be negative).
-pub trait Signed: Sized + Num + Neg<Output = Self> {
+pub const trait Signed:
+    Sized + Num + [const] NumConstShim + [const] Neg<Output = Self>
+{
     /// Computes the absolute value.
     ///
     /// For `f32` and `f64`, `NaN` will be returned if the number is `NaN`.
@@ -43,7 +46,7 @@ pub trait Signed: Sized + Num + Neg<Output = Self> {
 
 macro_rules! signed_impl {
     ($($t:ty)*) => ($(
-        impl Signed for $t {
+        impl const Signed for $t {
             #[inline]
             fn abs(&self) -> $t {
                 if self.is_negative() { -*self } else { *self }
@@ -74,9 +77,9 @@ macro_rules! signed_impl {
 
 signed_impl!(isize i8 i16 i32 i64 i128);
 
-impl<T: Signed> Signed for Wrapping<T>
+impl<T: [const] Signed> const Signed for Wrapping<T>
 where
-    Wrapping<T>: Num + Neg<Output = Wrapping<T>>,
+    Wrapping<T>: Num + [const] NumConstShim + [const] Neg<Output = Wrapping<T>>,
 {
     #[inline]
     fn abs(&self) -> Self {
@@ -106,7 +109,7 @@ where
 
 macro_rules! signed_float_impl {
     ($t:ty) => {
-        impl Signed for $t {
+        impl const Signed for $t {
             /// Computes the absolute value. Returns `NAN` if the number is `NAN`.
             #[inline]
             fn abs(&self) -> $t {
