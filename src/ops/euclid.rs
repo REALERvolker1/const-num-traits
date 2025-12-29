@@ -1,6 +1,9 @@
+use ::core::marker::Destruct;
 use core::ops::{Div, Rem};
 
-pub trait Euclid: Sized + Div<Self, Output = Self> + Rem<Self, Output = Self> {
+pub const trait Euclid:
+    Sized + [const] Div<Self, Output = Self> + [const] Rem<Self, Output = Self>
+{
     /// Calculates Euclidean division, the matching method for `rem_euclid`.
     ///
     /// This computes the integer `n` such that
@@ -135,7 +138,7 @@ impl Euclid for f64 {
     }
 }
 
-pub trait CheckedEuclid: Euclid {
+pub const trait CheckedEuclid: [const] Euclid {
     /// Performs euclid division, returning `None` on division by zero or if
     /// overflow occurred.
     fn checked_div_euclid(&self, v: &Self) -> Option<Self>;
@@ -161,8 +164,17 @@ pub trait CheckedEuclid: Euclid {
     ///
     /// assert_eq!(Some((div.unwrap(), rem.unwrap())), CheckedEuclid::checked_div_rem_euclid(&x, &y));
     /// ```
-    fn checked_div_rem_euclid(&self, v: &Self) -> Option<(Self, Self)> {
-        Some((self.checked_div_euclid(v)?, self.checked_rem_euclid(v)?))
+    fn checked_div_rem_euclid(&self, v: &Self) -> Option<(Self, Self)>
+    where
+        Option<Self>: [const] Destruct,
+    {
+        let Some(d) = self.checked_div_euclid(v) else {
+            return None;
+        };
+        let Some(r) = self.checked_rem_euclid(v) else {
+            return None;
+        };
+        Some((d, r))
     }
 }
 

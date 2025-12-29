@@ -17,7 +17,7 @@
 #![doc(html_root_url = "https://docs.rs/num-traits/0.2")]
 #![deny(unconditional_recursion)]
 #![no_std]
-#![feature(const_trait_impl, const_ops, const_cmp)]
+#![feature(const_trait_impl, const_ops, const_try, const_cmp, const_destruct)]
 
 // Need to explicitly bring the crate in for inherent float methods
 #[cfg(feature = "std")]
