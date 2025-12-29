@@ -20,7 +20,7 @@
 ///
 /// assert!(abs_difference <= 100.0 * f32::EPSILON);
 /// ```
-pub trait MulAdd<A = Self, B = Self> {
+pub const trait MulAdd<A = Self, B = Self> {
     /// The resulting type after applying the fused multiply-add.
     type Output;
 
@@ -29,13 +29,13 @@ pub trait MulAdd<A = Self, B = Self> {
 }
 
 /// The fused multiply-add assignment operation `*self = (*self * a) + b`
-pub trait MulAddAssign<A = Self, B = Self> {
+pub const trait MulAddAssign<A = Self, B = Self> {
     /// Performs the fused multiply-add assignment operation `*self = (*self * a) + b`
     fn mul_add_assign(&mut self, a: A, b: B);
 }
 
 #[cfg(any(feature = "std", feature = "libm"))]
-impl MulAdd<f32, f32> for f32 {
+impl const MulAdd<f32, f32> for f32 {
     type Output = Self;
 
     #[inline]
@@ -45,7 +45,7 @@ impl MulAdd<f32, f32> for f32 {
 }
 
 #[cfg(any(feature = "std", feature = "libm"))]
-impl MulAdd<f64, f64> for f64 {
+impl const MulAdd<f64, f64> for f64 {
     type Output = Self;
 
     #[inline]
@@ -56,7 +56,7 @@ impl MulAdd<f64, f64> for f64 {
 
 macro_rules! mul_add_impl {
     ($trait_name:ident for $($t:ty)*) => {$(
-        impl $trait_name for $t {
+        impl const $trait_name for $t {
             type Output = Self;
 
             #[inline]
@@ -71,7 +71,7 @@ mul_add_impl!(MulAdd for isize i8 i16 i32 i64 i128);
 mul_add_impl!(MulAdd for usize u8 u16 u32 u64 u128);
 
 #[cfg(any(feature = "std", feature = "libm"))]
-impl MulAddAssign<f32, f32> for f32 {
+impl const MulAddAssign<f32, f32> for f32 {
     #[inline]
     fn mul_add_assign(&mut self, a: Self, b: Self) {
         *self = <Self as crate::Float>::mul_add(*self, a, b)
@@ -79,7 +79,7 @@ impl MulAddAssign<f32, f32> for f32 {
 }
 
 #[cfg(any(feature = "std", feature = "libm"))]
-impl MulAddAssign<f64, f64> for f64 {
+impl const MulAddAssign<f64, f64> for f64 {
     #[inline]
     fn mul_add_assign(&mut self, a: Self, b: Self) {
         *self = <Self as crate::Float>::mul_add(*self, a, b)
@@ -88,7 +88,7 @@ impl MulAddAssign<f64, f64> for f64 {
 
 macro_rules! mul_add_assign_impl {
     ($trait_name:ident for $($t:ty)*) => {$(
-        impl $trait_name for $t {
+        impl const $trait_name for $t {
             #[inline]
             fn mul_add_assign(&mut self, a: Self, b: Self) {
                 *self = (*self * a) + b
