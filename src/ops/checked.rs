@@ -1,7 +1,7 @@
 use core::ops::{Add, Div, Mul, Rem, Shl, Shr, Sub};
 
 /// Performs addition, returning `None` if overflow occurred.
-pub trait CheckedAdd: Sized + Add<Self, Output = Self> {
+pub const trait CheckedAdd: Sized + [const] Add<Self, Output = Self> {
     /// Adds two numbers, checking for overflow. If overflow happens, `None` is
     /// returned.
     fn checked_add(&self, v: &Self) -> Option<Self>;
@@ -9,7 +9,7 @@ pub trait CheckedAdd: Sized + Add<Self, Output = Self> {
 
 macro_rules! checked_impl {
     ($trait_name:ident, $method:ident, $t:ty) => {
-        impl $trait_name for $t {
+        impl const $trait_name for $t {
             #[inline]
             fn $method(&self, v: &$t) -> Option<$t> {
                 <$t>::$method(*self, *v)
@@ -33,7 +33,7 @@ checked_impl!(CheckedAdd, checked_add, isize);
 checked_impl!(CheckedAdd, checked_add, i128);
 
 /// Performs subtraction, returning `None` if overflow occurred.
-pub trait CheckedSub: Sized + Sub<Self, Output = Self> {
+pub const trait CheckedSub: Sized + [const] Sub<Self, Output = Self> {
     /// Subtracts two numbers, checking for overflow. If overflow happens,
     /// `None` is returned.
     fn checked_sub(&self, v: &Self) -> Option<Self>;
@@ -54,7 +54,7 @@ checked_impl!(CheckedSub, checked_sub, isize);
 checked_impl!(CheckedSub, checked_sub, i128);
 
 /// Performs multiplication, returning `None` if overflow occurred.
-pub trait CheckedMul: Sized + Mul<Self, Output = Self> {
+pub const trait CheckedMul: Sized + [const] Mul<Self, Output = Self> {
     /// Multiplies two numbers, checking for overflow. If overflow happens,
     /// `None` is returned.
     fn checked_mul(&self, v: &Self) -> Option<Self>;
@@ -76,7 +76,7 @@ checked_impl!(CheckedMul, checked_mul, i128);
 
 /// Performs division, returning `None` on division by zero or if overflow
 /// occurred.
-pub trait CheckedDiv: Sized + Div<Self, Output = Self> {
+pub const trait CheckedDiv: Sized + [const] Div<Self, Output = Self> {
     /// Divides two numbers, checking for overflow and division by
     /// zero. If any of that happens, `None` is returned.
     fn checked_div(&self, v: &Self) -> Option<Self>;
@@ -98,7 +98,7 @@ checked_impl!(CheckedDiv, checked_div, i128);
 
 /// Performs integral remainder, returning `None` on division by zero or if
 /// overflow occurred.
-pub trait CheckedRem: Sized + Rem<Self, Output = Self> {
+pub const trait CheckedRem: Sized + [const] Rem<Self, Output = Self> {
     /// Finds the remainder of dividing two numbers, checking for overflow and
     /// division by zero. If any of that happens, `None` is returned.
     ///
@@ -137,7 +137,7 @@ checked_impl!(CheckedRem, checked_rem, i128);
 
 macro_rules! checked_impl_unary {
     ($trait_name:ident, $method:ident, $t:ty) => {
-        impl $trait_name for $t {
+        impl const $trait_name for $t {
             #[inline]
             fn $method(&self) -> Option<$t> {
                 <$t>::$method(*self)
@@ -147,7 +147,7 @@ macro_rules! checked_impl_unary {
 }
 
 /// Performs negation, returning `None` if the result can't be represented.
-pub trait CheckedNeg: Sized {
+pub const trait CheckedNeg: Sized {
     /// Negates a number, returning `None` for results that can't be represented, like signed `MIN`
     /// values that can't be positive, or non-zero unsigned values that can't be negative.
     ///
@@ -183,7 +183,7 @@ checked_impl_unary!(CheckedNeg, checked_neg, i128);
 
 /// Performs shift left, returning `None` on shifts larger than or equal to
 /// the type width.
-pub trait CheckedShl: Sized + Shl<u32, Output = Self> {
+pub const trait CheckedShl: Sized + [const] Shl<u32, Output = Self> {
     /// Checked shift left. Computes `self << rhs`, returning `None`
     /// if `rhs` is larger than or equal to the number of bits in `self`.
     ///
@@ -202,7 +202,7 @@ pub trait CheckedShl: Sized + Shl<u32, Output = Self> {
 
 macro_rules! checked_shift_impl {
     ($trait_name:ident, $method:ident, $t:ty) => {
-        impl $trait_name for $t {
+        impl const $trait_name for $t {
             #[inline]
             fn $method(&self, rhs: u32) -> Option<$t> {
                 <$t>::$method(*self, rhs)
@@ -227,7 +227,7 @@ checked_shift_impl!(CheckedShl, checked_shl, i128);
 
 /// Performs shift right, returning `None` on shifts larger than or equal to
 /// the type width.
-pub trait CheckedShr: Sized + Shr<u32, Output = Self> {
+pub const trait CheckedShr: Sized + [const] Shr<u32, Output = Self> {
     /// Checked shift right. Computes `self >> rhs`, returning `None`
     /// if `rhs` is larger than or equal to the number of bits in `self`.
     ///
