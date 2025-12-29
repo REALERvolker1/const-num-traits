@@ -29,7 +29,8 @@
     const_eval_select,
     const_convert,
     const_clone,
-    core_float_math
+    core_float_math,
+    derive_const
 )]
 
 // Need to explicitly bring the crate in for inherent float methods
@@ -241,14 +242,16 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy)]
+#[derive_const(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FloatErrorKind {
     Empty,
     Invalid,
 }
 // FIXME: core::num::ParseFloatError is stable in 1.0, but opaque to us,
 // so there's not really any way for us to reuse it.
-#[derive(Debug)]
+#[derive(Debug, Copy)]
+#[derive_const(Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ParseFloatError {
     pub kind: FloatErrorKind,
 }
@@ -456,30 +459,7 @@ float_trait_impl!(Num for f32 f64);
 ///
 /// **Panics** in debug mode if `!(min <= max)`.
 #[inline]
-pub fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
-    debug_assert!(min <= max, "min must be less than or equal to max");
-    if input < min {
-        min
-    } else if input > max {
-        max
-    } else {
-        input
-    }
-}
-
-/// A value bounded by a minimum and a maximum
-///
-///  If input is less than min then this returns min.
-///  If input is greater than max then this returns max.
-///  Otherwise this returns input.
-///
-/// **Panics** in debug mode if `!(min <= max)`.
-#[inline]
-pub(crate) const fn clamp_const<T: [const] PartialOrd + [const] Destruct>(
-    input: T,
-    min: T,
-    max: T,
-) -> T {
+pub const fn clamp<T: [const] PartialOrd + [const] Destruct>(input: T, min: T, max: T) -> T {
     debug_assert!(min <= max, "min must be less than or equal to max");
     if input < min {
         min
@@ -499,24 +479,7 @@ pub(crate) const fn clamp_const<T: [const] PartialOrd + [const] Destruct>(
 /// **Panics** in debug mode if `!(min == min)`. (This occurs if `min` is `NAN`.)
 #[inline]
 #[allow(clippy::eq_op)]
-pub fn clamp_min<T: PartialOrd>(input: T, min: T) -> T {
-    debug_assert!(min == min, "min must not be NAN");
-    if input < min {
-        min
-    } else {
-        input
-    }
-}
-/// A value bounded by a minimum value
-///
-///  If input is less than min then this returns min.
-///  Otherwise this returns input.
-///  `clamp_min(std::f32::NAN, 1.0)` preserves `NAN` different from `f32::min(std::f32::NAN, 1.0)`.
-///
-/// **Panics** in debug mode if `!(min == min)`. (This occurs if `min` is `NAN`.)
-#[inline]
-#[allow(clippy::eq_op)]
-pub(crate) const fn clamp_min_const<T: const PartialOrd + const Destruct>(input: T, min: T) -> T {
+pub const fn clamp_min<T: [const] PartialOrd + [const] Destruct>(input: T, min: T) -> T {
     debug_assert!(min == min, "min must not be NAN");
     if input < min {
         min
@@ -534,25 +497,7 @@ pub(crate) const fn clamp_min_const<T: const PartialOrd + const Destruct>(input:
 /// **Panics** in debug mode if `!(max == max)`. (This occurs if `max` is `NAN`.)
 #[inline]
 #[allow(clippy::eq_op)]
-pub fn clamp_max<T: PartialOrd>(input: T, max: T) -> T {
-    debug_assert!(max == max, "max must not be NAN");
-    if input > max {
-        max
-    } else {
-        input
-    }
-}
-
-/// A value bounded by a maximum value
-///
-///  If input is greater than max then this returns max.
-///  Otherwise this returns input.
-///  `clamp_max(std::f32::NAN, 1.0)` preserves `NAN` different from `f32::max(std::f32::NAN, 1.0)`.
-///
-/// **Panics** in debug mode if `!(max == max)`. (This occurs if `max` is `NAN`.)
-#[inline]
-#[allow(clippy::eq_op)]
-pub(crate) const fn clamp_max_const<T: const PartialOrd + const Destruct>(input: T, max: T) -> T {
+pub const fn clamp_max<T: [const] PartialOrd + [const] Destruct>(input: T, max: T) -> T {
     debug_assert!(max == max, "max must not be NAN");
     if input > max {
         max

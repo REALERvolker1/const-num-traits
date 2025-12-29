@@ -692,7 +692,7 @@ pub const trait FloatCore:
     /// check(3.0f64, 0.0, 2.0, 2.0);
     /// ```
     fn clamp(self, min: Self, max: Self) -> Self {
-        crate::clamp_const(self, min, max)
+        crate::clamp(self, min, max)
     }
 
     /// Returns the reciprocal (multiplicative inverse) of the number.
@@ -1563,7 +1563,7 @@ pub const trait Float:
     /// assert_eq!(x.clamp(y, z), 2.0);
     /// ```
     fn clamp(self, min: Self, max: Self) -> Self {
-        crate::clamp_const(self, min, max)
+        crate::clamp(self, min, max)
     }
 
     /// The positive difference of two numbers.

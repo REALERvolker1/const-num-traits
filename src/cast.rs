@@ -32,21 +32,21 @@ pub const trait ToPrimitive: [const] Destruct {
     /// represented by an `i8`, then `None` is returned.
     #[inline]
     fn to_i8(&self) -> Option<i8> {
-        self.to_isize().as_ref().and_then(ToPrimitive::to_i8)
+        self.to_i64().as_ref().and_then(ToPrimitive::to_i8)
     }
 
     /// Converts the value of `self` to an `i16`. If the value cannot be
     /// represented by an `i16`, then `None` is returned.
     #[inline]
     fn to_i16(&self) -> Option<i16> {
-        self.to_isize().as_ref().and_then(ToPrimitive::to_i16)
+        self.to_i64().as_ref().and_then(ToPrimitive::to_i16)
     }
 
     /// Converts the value of `self` to an `i32`. If the value cannot be
     /// represented by an `i32`, then `None` is returned.
     #[inline]
     fn to_i32(&self) -> Option<i32> {
-        self.to_isize().as_ref().and_then(ToPrimitive::to_i32)
+        self.to_i64().as_ref().and_then(ToPrimitive::to_i32)
     }
 
     /// Converts the value of `self` to an `i64`. If the value cannot be
@@ -75,21 +75,21 @@ pub const trait ToPrimitive: [const] Destruct {
     /// represented by a `u8`, then `None` is returned.
     #[inline]
     fn to_u8(&self) -> Option<u8> {
-        self.to_usize().as_ref().and_then(ToPrimitive::to_u8)
+        self.to_u64().as_ref().and_then(ToPrimitive::to_u8)
     }
 
     /// Converts the value of `self` to a `u16`. If the value cannot be
     /// represented by a `u16`, then `None` is returned.
     #[inline]
     fn to_u16(&self) -> Option<u16> {
-        self.to_usize().as_ref().and_then(ToPrimitive::to_u16)
+        self.to_u64().as_ref().and_then(ToPrimitive::to_u16)
     }
 
     /// Converts the value of `self` to a `u32`. If the value cannot be
     /// represented by a `u32`, then `None` is returned.
     #[inline]
     fn to_u32(&self) -> Option<u32> {
-        self.to_usize().as_ref().and_then(ToPrimitive::to_u32)
+        self.to_u64().as_ref().and_then(ToPrimitive::to_u32)
     }
 
     /// Converts the value of `self` to a `u64`. If the value cannot be
@@ -454,14 +454,14 @@ pub const trait FromPrimitive: Sized + [const] Destruct {
     /// value cannot be represented by this type, then `None` is returned.
     #[inline]
     fn from_i8(n: i8) -> Option<Self> {
-        FromPrimitive::from_isize(From::from(n))
+        FromPrimitive::from_i64(From::from(n))
     }
 
     /// Converts an `i16` to return an optional value of this type. If the
     /// value cannot be represented by this type, then `None` is returned.
     #[inline]
     fn from_i16(n: i16) -> Option<Self> {
-        FromPrimitive::from_isize(From::from(n))
+        FromPrimitive::from_i64(From::from(n))
     }
 
     /// Converts an `i32` to return an optional value of this type. If the
@@ -496,14 +496,14 @@ pub const trait FromPrimitive: Sized + [const] Destruct {
     /// value cannot be represented by this type, then `None` is returned.
     #[inline]
     fn from_u8(n: u8) -> Option<Self> {
-        FromPrimitive::from_usize(From::from(n))
+        FromPrimitive::from_u64(From::from(n))
     }
 
     /// Converts an `u16` to return an optional value of this type. If the
     /// value cannot be represented by this type, then `None` is returned.
     #[inline]
     fn from_u16(n: u16) -> Option<Self> {
-        FromPrimitive::from_usize(From::from(n))
+        FromPrimitive::from_u64(From::from(n))
     }
 
     /// Converts an `u32` to return an optional value of this type. If the
