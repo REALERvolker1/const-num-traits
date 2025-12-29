@@ -32,7 +32,7 @@ impl<T> NumBytes for T where
 {
 }
 
-pub trait ToBytes {
+pub const trait ToBytes {
     type Bytes: NumBytes;
 
     /// Return the memory representation of this number as a byte array in big-endian byte order.
@@ -90,7 +90,7 @@ pub trait ToBytes {
     }
 }
 
-pub trait FromBytes: Sized {
+pub const trait FromBytes: Sized {
     type Bytes: NumBytes + ?Sized;
 
     /// Create a number from its representation as a byte array in big endian.
@@ -150,7 +150,7 @@ pub trait FromBytes: Sized {
 
 macro_rules! float_to_from_bytes_impl {
     ($T:ty, $L:expr) => {
-        impl ToBytes for $T {
+        impl const ToBytes for $T {
             type Bytes = [u8; $L];
 
             #[inline]
@@ -169,7 +169,7 @@ macro_rules! float_to_from_bytes_impl {
             }
         }
 
-        impl FromBytes for $T {
+        impl const FromBytes for $T {
             type Bytes = [u8; $L];
 
             #[inline]
@@ -192,7 +192,7 @@ macro_rules! float_to_from_bytes_impl {
 
 macro_rules! int_to_from_bytes_impl {
     ($T:ty, $L:expr) => {
-        impl ToBytes for $T {
+        impl const ToBytes for $T {
             type Bytes = [u8; $L];
 
             #[inline]
@@ -211,7 +211,7 @@ macro_rules! int_to_from_bytes_impl {
             }
         }
 
-        impl FromBytes for $T {
+        impl const FromBytes for $T {
             type Bytes = [u8; $L];
 
             #[inline]

@@ -21,6 +21,7 @@ rustdoc-args = ["--generate-link-to-definition"]
 
 [dependencies]
 libm = { version = "0.2.0", optional = true }
+const_libm = { git = "https://github.com/REALERvolker1/const_libm.git" }
 
 [features]
 default = ["std"]
