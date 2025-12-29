@@ -1,5 +1,6 @@
 use core::ops::{BitAnd, BitOr, BitXor, Not, Shl, Shr};
 
+use crate::__non_backwards_compatible_required_reexports::NumConstShim;
 use crate::bounds::Bounded;
 use crate::ops::checked::*;
 use crate::ops::saturating::Saturating;
@@ -31,26 +32,27 @@ use crate::{Num, NumCast};
 /// This trait and many of the method names originate in the unstable `core::num::Int` trait from
 /// the rust standard library. The original trait was never stabilized and thus removed from the
 /// standard library.
-pub trait PrimInt:
+pub const trait PrimInt:
     Sized
     + Copy
     + Num
-    + NumCast
-    + Bounded
-    + PartialOrd
-    + Ord
-    + Eq
-    + Not<Output = Self>
-    + BitAnd<Output = Self>
-    + BitOr<Output = Self>
-    + BitXor<Output = Self>
-    + Shl<usize, Output = Self>
-    + Shr<usize, Output = Self>
-    + CheckedAdd<Output = Self>
-    + CheckedSub<Output = Self>
-    + CheckedMul<Output = Self>
-    + CheckedDiv<Output = Self>
-    + Saturating
+    + [const] NumConstShim
+    + [const] NumCast
+    + [const] Bounded
+    + [const] PartialOrd
+    + [const] Ord
+    + [const] Eq
+    + [const] Not<Output = Self>
+    + [const] BitAnd<Output = Self>
+    + [const] BitOr<Output = Self>
+    + [const] BitXor<Output = Self>
+    + [const] Shl<usize, Output = Self>
+    + [const] Shr<usize, Output = Self>
+    + [const] CheckedAdd<Output = Self>
+    + [const] CheckedSub<Output = Self>
+    + [const] CheckedMul<Output = Self>
+    + [const] CheckedDiv<Output = Self>
+    + [const] Saturating
 {
     /// Returns the number of ones in the binary representation of `self`.
     ///
@@ -358,7 +360,7 @@ pub trait PrimInt:
     fn pow(self, exp: u32) -> Self;
 }
 
-fn one_per_byte<P: PrimInt>() -> P {
+const fn one_per_byte<P: [const] PrimInt>() -> P {
     // i8, u8: return 0x01
     // i16, u16: return 0x0101 = (0x01 << 8) | 0x01
     // i32, u32: return 0x01010101 = (0x0101 << 16) | 0x0101
@@ -374,7 +376,7 @@ fn one_per_byte<P: PrimInt>() -> P {
     ret
 }
 
-fn reverse_bits_fallback<P: PrimInt>(i: P) -> P {
+const fn reverse_bits_fallback<P: [const] PrimInt>(i: P) -> P {
     let rep_01: P = one_per_byte();
     let rep_03 = (rep_01 << 1) | rep_01;
     let rep_05 = (rep_01 << 2) | rep_01;
@@ -393,7 +395,7 @@ fn reverse_bits_fallback<P: PrimInt>(i: P) -> P {
 
 macro_rules! prim_int_impl {
     ($T:ty, $S:ty, $U:ty) => {
-        impl PrimInt for $T {
+        impl const PrimInt for $T {
             #[inline]
             fn count_ones(self) -> u32 {
                 <$T>::count_ones(self)
