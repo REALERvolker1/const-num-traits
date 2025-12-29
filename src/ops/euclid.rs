@@ -1,5 +1,5 @@
+use ::core::intrinsics::const_eval_select;
 use ::core::marker::Destruct;
-use ::std::intrinsics::const_eval_select;
 use core::ops::{Div, Rem};
 
 use crate::float::FloatCore;

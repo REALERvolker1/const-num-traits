@@ -2,7 +2,7 @@ use core::cmp::Ordering;
 use core::num::FpCategory;
 use core::ops::{Add, Div, Neg};
 
-use ::std::intrinsics::const_eval_select;
+use ::core::intrinsics::const_eval_select;
 use core::f32;
 use core::f64;
 
@@ -10,6 +10,23 @@ use crate::{Num, NumCast, NumConstShim, ToPrimitive};
 
 pub(crate) const fn fpcategory_eq(a: FpCategory, b: FpCategory) -> bool {
     (a as i32) == (b as i32)
+}
+
+macro_rules! const_libm_select {
+    ($args:expr, $libm_name:ident, $std_name:path) => {
+        const_eval_select(
+            $args,
+            const_libm::$libm_name,
+            #[cfg(feature = "libm")]
+            {
+                libm::$libm_name
+            },
+            #[cfg(not(feature = "libm"))]
+            {
+                $std_name
+            },
+        )
+    };
 }
 
 /// Generic trait for floating point numbers that works with `no_std`.
@@ -854,22 +871,33 @@ impl const FloatCore for f32 {
         Self::fract(self) -> Self;
         Self::abs(self) -> Self;
         Self::signum(self) -> Self;
-        // Self::powi(self, n: i32) -> Self;
+        Self::powi(self, n: i32) -> Self;
     }
 
     #[cfg(all(not(feature = "std"), feature = "libm"))]
-    forward! {
-        libm::floorf as floor(self) -> Self;
-        libm::ceilf as ceil(self) -> Self;
-        libm::roundf as round(self) -> Self;
-        libm::truncf as trunc(self) -> Self;
-        libm::fabsf as abs(self) -> Self;
+    fn trunc(self) -> Self {
+        const_eval_select((self,), const_libm::truncf, libm::truncf)
     }
-
     #[cfg(all(not(feature = "std"), feature = "libm"))]
-    #[inline]
+    fn floor(self) -> Self {
+        const_eval_select((self,), const_libm::floorf, libm::floorf)
+    }
+    #[cfg(all(not(feature = "std"), feature = "libm"))]
+    fn abs(self) -> Self {
+        const_eval_select((self,), const_libm::fabsf, libm::fabsf)
+    }
+    #[cfg(all(not(feature = "std"), feature = "libm"))]
+    fn ceil(self) -> Self {
+        const_eval_select((self,), const_libm::ceilf, libm::ceilf)
+    }
+    #[cfg(all(not(feature = "std"), feature = "libm"))]
+    fn round(self) -> Self {
+        const_eval_select((self,), const_libm::roundf, libm::roundf)
+    }
+    #[cfg(all(not(feature = "std"), feature = "libm"))]
     fn fract(self) -> Self {
-        self - libm::truncf(self)
+        let trunc = FloatCore::trunc(self);
+        self - trunc
     }
 }
 
@@ -916,22 +944,33 @@ impl const FloatCore for f64 {
         Self::fract(self) -> Self;
         Self::abs(self) -> Self;
         Self::signum(self) -> Self;
-        // Self::powi(self, n: i32) -> Self;
+        Self::powi(self, n: i32) -> Self;
     }
 
     #[cfg(all(not(feature = "std"), feature = "libm"))]
-    forward! {
-        libm::floor as floor(self) -> Self;
-        libm::ceil as ceil(self) -> Self;
-        libm::round as round(self) -> Self;
-        libm::trunc as trunc(self) -> Self;
-        libm::fabs as abs(self) -> Self;
+    fn trunc(self) -> Self {
+        const_eval_select((self,), const_libm::trunc, libm::trunc)
     }
-
     #[cfg(all(not(feature = "std"), feature = "libm"))]
-    #[inline]
+    fn floor(self) -> Self {
+        const_eval_select((self,), const_libm::floor, libm::floor)
+    }
+    #[cfg(all(not(feature = "std"), feature = "libm"))]
+    fn abs(self) -> Self {
+        const_eval_select((self,), const_libm::fabs, libm::fabs)
+    }
+    #[cfg(all(not(feature = "std"), feature = "libm"))]
+    fn ceil(self) -> Self {
+        const_eval_select((self,), const_libm::ceil, libm::ceil)
+    }
+    #[cfg(all(not(feature = "std"), feature = "libm"))]
+    fn round(self) -> Self {
+        const_eval_select((self,), const_libm::round, libm::round)
+    }
+    #[cfg(all(not(feature = "std"), feature = "libm"))]
     fn fract(self) -> Self {
-        self - libm::trunc(self)
+        let trunc = FloatCore::trunc(self);
+        self - trunc
     }
 }
 
@@ -1929,23 +1968,6 @@ pub const trait Float:
             self.neg()
         }
     }
-}
-
-macro_rules! const_libm_select {
-    ($args:expr, $libm_name:ident, $std_name:path) => {
-        const_eval_select(
-            $args,
-            const_libm::$libm_name,
-            #[cfg(feature = "libm")]
-            {
-                libm::$libm_name
-            },
-            #[cfg(not(feature = "libm"))]
-            {
-                $std_name
-            },
-        )
-    };
 }
 
 const fn const_log<F: const Float>(a: F, b: F) -> F {
