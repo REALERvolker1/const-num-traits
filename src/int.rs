@@ -92,6 +92,7 @@ pub const trait PrimInt:
     ///
     /// assert_eq!(n.leading_ones(), 4);
     /// ```
+    #[inline]
     fn leading_ones(self) -> u32 {
         (!self).leading_zeros()
     }
@@ -122,6 +123,7 @@ pub const trait PrimInt:
     ///
     /// assert_eq!(n.trailing_ones(), 4);
     /// ```
+    #[inline]
     fn trailing_ones(self) -> u32 {
         (!self).trailing_zeros()
     }
@@ -268,6 +270,7 @@ pub const trait PrimInt:
     /// assert_eq!(n.reverse_bits(), m);
     /// assert_eq!(0u32.reverse_bits(), 0);
     /// ```
+    #[inline]
     fn reverse_bits(self) -> Self {
         reverse_bits_fallback(self)
     }
@@ -514,7 +517,7 @@ mod tests {
 
     #[test]
     pub fn reverse_bits() {
-        use core::{i16, i32, i64, i8};
+        use core::{i8, i16, i32, i64};
 
         assert_eq!(
             PrimInt::reverse_bits(0x0123_4567_89ab_cdefu64),

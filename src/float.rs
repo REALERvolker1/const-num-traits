@@ -7,6 +7,7 @@ use core::ops::Neg;
 
 use crate::{Num, NumCast, NumConstShim};
 
+#[inline]
 pub(crate) const fn fpcategory_eq(a: FpCategory, b: FpCategory) -> bool {
     (a as i32) == (b as i32)
 }
@@ -196,6 +197,7 @@ pub const trait FloatCore:
     /// check(0.0f64, false);
     /// ```
     #[allow(clippy::eq_op)]
+    #[inline]
     fn is_nan(self) -> bool {
         self != self
     }
@@ -219,6 +221,7 @@ pub const trait FloatCore:
     /// check(f64::NEG_INFINITY, true);
     /// check(0.0f64, false);
     /// ```
+    #[inline]
     fn is_infinite(self) -> bool {
         self == Self::infinity() || self == Self::neg_infinity()
     }
@@ -241,6 +244,7 @@ pub const trait FloatCore:
     /// check(f64::MIN_POSITIVE, true);
     /// check(f64::NAN, false);
     /// ```
+    #[inline]
     fn is_finite(self) -> bool {
         !(self.is_nan() || self.is_infinite())
     }
@@ -263,6 +267,7 @@ pub const trait FloatCore:
     /// check(f64::MIN_POSITIVE, true);
     /// check(0.0f64, false);
     /// ```
+    #[inline]
     fn is_normal(self) -> bool {
         fpcategory_eq(self.classify(), FpCategory::Normal)
     }
@@ -288,6 +293,7 @@ pub const trait FloatCore:
     /// assert!(lower_than_min.is_subnormal());
     /// ```
     /// [subnormal]: https://en.wikipedia.org/wiki/Subnormal_number
+    #[inline]
     fn is_subnormal(self) -> bool {
         fpcategory_eq(self.classify(), FpCategory::Subnormal)
     }
@@ -338,6 +344,7 @@ pub const trait FloatCore:
     /// check(-1.1f64, -2.0);
     /// check(f64::MIN, f64::MIN);
     /// ```
+    #[inline]
     fn floor(self) -> Self {
         let f = self.fract();
         if f.is_nan() || f.is_zero() {
@@ -372,6 +379,7 @@ pub const trait FloatCore:
     /// check(-1.1f64, -1.0);
     /// check(f64::MIN, f64::MIN);
     /// ```
+    #[inline]
     fn ceil(self) -> Self {
         let f = self.fract();
         if f.is_nan() || f.is_zero() {
@@ -405,6 +413,7 @@ pub const trait FloatCore:
     /// check(-0.6f64, -1.0);
     /// check(f64::MIN, f64::MIN);
     /// ```
+    #[inline]
     fn round(self) -> Self {
         let one = Self::one();
         let h = Self::from(0.5).expect("Unable to cast from 0.5");
@@ -443,6 +452,7 @@ pub const trait FloatCore:
     /// check(-1.1f64, -1.0);
     /// check(f64::MIN, f64::MIN);
     /// ```
+    #[inline]
     fn trunc(self) -> Self {
         let f = self.fract();
         if f.is_nan() {
@@ -475,6 +485,7 @@ pub const trait FloatCore:
     /// check(-1.25f64, -0.25);
     /// check(f64::MIN, 0.0);
     /// ```
+    #[inline]
     fn fract(self) -> Self {
         if self.is_zero() {
             cold_path();
@@ -504,6 +515,7 @@ pub const trait FloatCore:
     /// check(-1.0f64, 1.0);
     /// check(f64::MIN, f64::MAX);
     /// ```
+    #[inline]
     fn abs(self) -> Self {
         if self.is_sign_positive() {
             return self;
@@ -537,6 +549,7 @@ pub const trait FloatCore:
     /// check(-3.0f64, -1.0);
     /// check(f64::MIN, -1.0);
     /// ```
+    #[inline]
     fn signum(self) -> Self {
         if self.is_nan() {
             Self::nan()
@@ -569,6 +582,7 @@ pub const trait FloatCore:
     /// check(f64::NAN, true);
     /// check(-f64::NAN, false);
     /// ```
+    #[inline]
     fn is_sign_positive(self) -> bool {
         !self.is_sign_negative()
     }
@@ -595,6 +609,7 @@ pub const trait FloatCore:
     /// check(f64::NAN, false);
     /// check(-f64::NAN, true);
     /// ```
+    #[inline]
     fn is_sign_negative(self) -> bool {
         let (_, _, sign) = self.integer_decode();
         sign < 0
@@ -619,6 +634,7 @@ pub const trait FloatCore:
     /// check(1.0f64, -2.0, -2.0);
     /// check(1.0f64, f64::NAN, 1.0);
     /// ```
+    #[inline]
     fn min(self, other: Self) -> Self {
         if self.is_nan() {
             cold_path();
@@ -650,6 +666,7 @@ pub const trait FloatCore:
     /// check(-1.0f64, 2.0, 2.0);
     /// check(-1.0f64, f64::NAN, -1.0);
     /// ```
+    #[inline]
     fn max(self, other: Self) -> Self {
         if self.is_nan() {
             cold_path();
@@ -688,6 +705,7 @@ pub const trait FloatCore:
     /// check(1.0f64, 2.0, 3.0, 2.0);
     /// check(3.0f64, 0.0, 2.0, 2.0);
     /// ```
+    #[inline]
     fn clamp(self, min: Self, max: Self) -> Self {
         crate::clamp(self, min, max)
     }
@@ -710,6 +728,7 @@ pub const trait FloatCore:
     /// check(-0.25f64, -4.0);
     /// check(-0.0f64, f64::NEG_INFINITY);
     /// ```
+    #[inline]
     fn recip(self) -> Self {
         Self::one() / self
     }
@@ -733,6 +752,7 @@ pub const trait FloatCore:
     /// check(4.0f64, -2, 0.0625);
     /// check(-1.0f64, std::i32::MIN, 1.0);
     /// ```
+    #[inline]
     fn powi(self, exp: i32) -> Self {
         powi_const(self, exp)
     }
@@ -798,6 +818,7 @@ pub const trait FloatCore:
     /// ```
     fn integer_decode(self) -> (u64, i16, i8);
 }
+#[inline]
 const fn powi_const<F: [const] FloatCore>(mut s: F, mut exp: i32) -> F {
     if exp < 0 {
         cold_path();
@@ -810,6 +831,7 @@ const fn powi_const<F: [const] FloatCore>(mut s: F, mut exp: i32) -> F {
     super::pow::pow_const(s, exp as usize)
 }
 #[allow(unused)]
+#[inline]
 const fn fract_scalar_const<F: [const] FloatCore>(s: F) -> F {
     let trunc = s.trunc();
     s - trunc
@@ -827,6 +849,7 @@ impl const FloatCore for f32 {
         max_value() -> f32::MAX;
     }
 
+    #[inline]
     fn integer_decode(self) -> (u64, i16, i8) {
         integer_decode_f32(self)
     }
@@ -859,31 +882,38 @@ impl const FloatCore for f32 {
         Self::signum(self) -> Self;
     }
     #[cfg(feature = "std")]
+    #[inline]
     fn powi(self, exp: i32) -> Self {
         const_eval_select((self, exp), powi_const, f32::powi)
     }
 
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn trunc(self) -> Self {
         const_eval_select((self,), const_libm::truncf, libm::truncf)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn floor(self) -> Self {
         const_eval_select((self,), const_libm::floorf, libm::floorf)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn abs(self) -> Self {
         const_eval_select((self,), const_libm::fabsf, libm::fabsf)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn ceil(self) -> Self {
         const_eval_select((self,), const_libm::ceilf, libm::ceilf)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn round(self) -> Self {
         const_eval_select((self,), const_libm::roundf, libm::roundf)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn fract(self) -> Self {
         fract_scalar_const(self)
     }
@@ -901,6 +931,7 @@ impl const FloatCore for f64 {
         max_value() -> f64::MAX;
     }
 
+    #[inline]
     fn integer_decode(self) -> (u64, i16, i8) {
         integer_decode_f64(self)
     }
@@ -933,31 +964,38 @@ impl const FloatCore for f64 {
         Self::signum(self) -> Self;
     }
     #[cfg(feature = "std")]
+    #[inline]
     fn powi(self, exp: i32) -> Self {
         const_eval_select((self, exp), powi_const, f64::powi)
     }
 
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn trunc(self) -> Self {
         const_eval_select((self,), const_libm::trunc, libm::trunc)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn floor(self) -> Self {
         const_eval_select((self,), const_libm::floor, libm::floor)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn abs(self) -> Self {
         const_eval_select((self,), const_libm::fabs, libm::fabs)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn ceil(self) -> Self {
         const_eval_select((self,), const_libm::ceil, libm::ceil)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn round(self) -> Self {
         const_eval_select((self,), const_libm::round, libm::round)
     }
     #[cfg(all(not(feature = "std"), feature = "libm"))]
+    #[inline]
     fn fract(self) -> Self {
         fract_scalar_const(self)
     }
@@ -1068,6 +1106,7 @@ pub const trait Float:
     ///
     /// The default implementation will panic if `f32::EPSILON` cannot
     /// be cast to `Self`.
+    #[inline]
     fn epsilon() -> Self {
         Self::from(f32::EPSILON).expect("Unable to cast from f32::EPSILON")
     }
@@ -1181,6 +1220,7 @@ pub const trait Float:
     /// assert!(lower_than_min.is_subnormal());
     /// ```
     /// [subnormal]: https://en.wikipedia.org/wiki/Subnormal_number
+    #[inline]
     fn is_subnormal(self) -> bool {
         fpcategory_eq(self.classify(), FpCategory::Subnormal)
     }
@@ -1530,6 +1570,7 @@ pub const trait Float:
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
+    #[inline]
     fn to_degrees(self) -> Self {
         let halfpi = Self::zero().acos();
         let ninety = Self::from(90u8).unwrap();
@@ -1547,6 +1588,7 @@ pub const trait Float:
     ///
     /// assert!(abs_difference < 1e-10);
     /// ```
+    #[inline]
     fn to_radians(self) -> Self {
         let halfpi = Self::zero().acos();
         let ninety = Self::from(90u8).unwrap();
@@ -1590,6 +1632,7 @@ pub const trait Float:
     ///
     /// assert_eq!(x.clamp(y, z), 2.0);
     /// ```
+    #[inline]
     fn clamp(self, min: Self, max: Self) -> Self {
         crate::clamp(self, min, max)
     }
@@ -1950,6 +1993,7 @@ pub const trait Float:
     ///
     /// assert!(f32::nan().copysign(1.0).is_nan());
     /// ```
+    #[inline]
     fn copysign(self, sign: Self) -> Self {
         if self.is_sign_negative() == sign.is_sign_negative() {
             self
@@ -2012,100 +2056,126 @@ impl const Float for f32 {
         FloatCore::integer_decode(self) -> (u64, i16, i8);
     }
     #[allow(deprecated)]
+    #[inline]
     fn abs_sub(self, other: Self) -> Self {
         const_libm_select!((self, other), fdimf, f32::abs_sub)
     }
+    #[inline]
     fn acos(self) -> Self {
         const_libm_select!((self,), acosf, f32::acos)
     }
+    #[inline]
     fn acosh(self) -> Self {
         const_libm_select!((self,), acoshf, f32::acosh)
     }
+    #[inline]
     fn asin(self) -> Self {
         const_libm_select!((self,), asinf, f32::asin)
     }
+    #[inline]
     fn asinh(self) -> Self {
         const_libm_select!((self,), asinhf, f32::asinh)
     }
+    #[inline]
     fn atan(self) -> Self {
         const_libm_select!((self,), atanf, f32::atan)
     }
+    #[inline]
     fn atan2(self, other: Self) -> Self {
         const_libm_select!((self, other), atan2f, f32::atan2)
     }
+    #[inline]
     fn atanh(self) -> Self {
         const_libm_select!((self,), atanhf, f32::atanh)
     }
+    #[inline]
     fn cbrt(self) -> Self {
         const_libm_select!((self,), cbrtf, f32::cbrt)
     }
+    #[inline]
     fn copysign(self, sign: Self) -> Self {
         const_libm_select!((self, sign), copysignf, f32::copysign)
     }
+    #[inline]
     fn mul_add(self, a: Self, b: Self) -> Self {
         const_libm_select!((self, a, b), fmaf, f32::mul_add)
     }
+    #[inline]
     fn cos(self) -> Self {
         const_libm_select!((self,), cosf, f32::cos)
     }
+    #[inline]
     fn cosh(self) -> Self {
         const_libm_select!((self,), coshf, f32::cosh)
     }
+    #[inline]
     fn exp(self) -> Self {
         const_libm_select!((self,), expf, f32::exp)
     }
+    #[inline]
     fn exp2(self) -> Self {
         const_libm_select!((self,), exp2f, f32::exp2)
     }
+    #[inline]
     fn exp_m1(self) -> Self {
         const_libm_select!((self,), expm1f, f32::exp_m1)
     }
+    #[inline]
     fn hypot(self, other: Self) -> Self {
         const_libm_select!((self, other), hypotf, f32::hypot)
     }
+    #[inline]
     fn ln(self) -> Self {
         const_libm_select!((self,), logf, f32::ln)
     }
+    #[inline]
     fn ln_1p(self) -> Self {
         const_libm_select!((self,), log1pf, f32::ln_1p)
     }
+    #[inline]
     fn log(self, base: Self) -> Self {
         #[cfg(feature = "std")]
         {
-            const fn in_const(s: f32, b: f32) -> f32 {
-                Float::log(s as f64, b as f64) as f32
-            }
-            const_eval_select((self, base), in_const, f32::log)
+            const_eval_select((self, base), const_log, f32::log)
         }
         #[cfg(not(feature = "std"))]
         {
             const_log(self, base)
         }
     }
+    #[inline]
     fn log10(self) -> Self {
         const_libm_select!((self,), log10f, f32::log10)
     }
+    #[inline]
     fn log2(self) -> Self {
         const_libm_select!((self,), log2f, f32::log2)
     }
+    #[inline]
     fn powf(self, n: Self) -> Self {
         const_libm_select!((self, n), powf, f32::powf)
     }
+    #[inline]
     fn sin(self) -> Self {
         const_libm_select!((self,), sinf, f32::sin)
     }
+    #[inline]
     fn sin_cos(self) -> (Self, Self) {
         const_libm_select!((self,), sincosf, f32::sin_cos)
     }
+    #[inline]
     fn sinh(self) -> Self {
         const_libm_select!((self,), sinhf, f32::sinh)
     }
+    #[inline]
     fn sqrt(self) -> Self {
         const_libm_select!((self,), sqrtf, f32::sqrt)
     }
+    #[inline]
     fn tan(self) -> Self {
         const_libm_select!((self,), tanf, f32::tan)
     }
+    #[inline]
     fn tanh(self) -> Self {
         const_libm_select!((self,), tanhf, f32::tanh)
     }
@@ -2148,63 +2218,83 @@ impl const Float for f64 {
         FloatCore::integer_decode(self) -> (u64, i16, i8);
     }
     #[allow(deprecated)]
+    #[inline]
     fn abs_sub(self, other: Self) -> Self {
         const_libm_select!((self, other), fdim, f64::abs_sub)
     }
+    #[inline]
     fn acos(self) -> Self {
         const_libm_select!((self,), acos, f64::acos)
     }
+    #[inline]
     fn acosh(self) -> Self {
         const_libm_select!((self,), acosh, f64::acosh)
     }
+    #[inline]
     fn asin(self) -> Self {
         const_libm_select!((self,), asin, f64::asin)
     }
+    #[inline]
     fn asinh(self) -> Self {
         const_libm_select!((self,), asinh, f64::asinh)
     }
+    #[inline]
     fn atan(self) -> Self {
         const_libm_select!((self,), atan, f64::atan)
     }
+    #[inline]
     fn atan2(self, other: Self) -> Self {
         const_libm_select!((self, other), atan2, f64::atan2)
     }
+    #[inline]
     fn atanh(self) -> Self {
         const_libm_select!((self,), atanh, f64::atanh)
     }
+    #[inline]
     fn cbrt(self) -> Self {
         const_libm_select!((self,), cbrt, f64::cbrt)
     }
+    #[inline]
     fn copysign(self, sign: Self) -> Self {
         const_libm_select!((self, sign), copysign, f64::copysign)
     }
+    #[inline]
     fn mul_add(self, a: Self, b: Self) -> Self {
         const_libm_select!((self, a, b), fma, f64::mul_add)
     }
+    #[inline]
     fn cos(self) -> Self {
         const_libm_select!((self,), cos, f64::cos)
     }
+    #[inline]
     fn cosh(self) -> Self {
         const_libm_select!((self,), cosh, f64::cosh)
     }
+    #[inline]
     fn exp(self) -> Self {
         const_libm_select!((self,), exp, f64::exp)
     }
+    #[inline]
     fn exp2(self) -> Self {
         const_libm_select!((self,), exp2, f64::exp2)
     }
+    #[inline]
     fn exp_m1(self) -> Self {
         const_libm_select!((self,), expm1, f64::exp_m1)
     }
+    #[inline]
     fn hypot(self, other: Self) -> Self {
         const_libm_select!((self, other), hypot, f64::hypot)
     }
+    #[inline]
     fn ln(self) -> Self {
         const_libm_select!((self,), log, f64::ln)
     }
+    #[inline]
     fn ln_1p(self) -> Self {
         const_libm_select!((self,), log1p, f64::ln_1p)
     }
+    #[inline]
     fn log(self, base: Self) -> Self {
         #[cfg(feature = "std")]
         {
@@ -2215,35 +2305,44 @@ impl const Float for f64 {
             const_log(self, base)
         }
     }
+    #[inline]
     fn log10(self) -> Self {
         const_libm_select!((self,), log10, f64::log10)
     }
+    #[inline]
     fn log2(self) -> Self {
         const_libm_select!((self,), log2, f64::log2)
     }
+    #[inline]
     fn powf(self, n: Self) -> Self {
         const_libm_select!((self, n), pow, f64::powf)
     }
+    #[inline]
     fn sin(self) -> Self {
         const_libm_select!((self,), sin, f64::sin)
     }
+    #[inline]
     fn sin_cos(self) -> (Self, Self) {
         const_libm_select!((self,), sincos, f64::sin_cos)
     }
+    #[inline]
     fn sinh(self) -> Self {
         const_libm_select!((self,), sinh, f64::sinh)
     }
+    #[inline]
     fn sqrt(self) -> Self {
         const_libm_select!((self,), sqrt, f64::sqrt)
     }
+    #[inline]
     fn tan(self) -> Self {
         const_libm_select!((self,), tan, f64::tan)
     }
+    #[inline]
     fn tanh(self) -> Self {
         const_libm_select!((self,), tanh, f64::tanh)
     }
 }
-
+#[inline]
 const fn integer_decode_f32(f: f32) -> (u64, i16, i8) {
     let bits: u32 = f.to_bits();
     let sign: i8 = if bits >> 31 == 0 { 1 } else { -1 };
@@ -2257,7 +2356,7 @@ const fn integer_decode_f32(f: f32) -> (u64, i16, i8) {
     exponent -= 127 + 23;
     (mantissa as u64, exponent, sign)
 }
-
+#[inline]
 const fn integer_decode_f64(f: f64) -> (u64, i16, i8) {
     let bits: u64 = f.to_bits();
     let sign: i8 = if bits >> 63 == 0 { 1 } else { -1 };
@@ -2316,60 +2415,79 @@ pub const trait FloatConst {
 macro_rules! floatconst {
     ($f:ident) => {
         impl const FloatConst for $f {
+            #[inline]
             fn E() -> Self {
                 ::core::$f::consts::E
             }
+            #[inline]
             fn FRAC_1_PI() -> Self {
                 ::core::$f::consts::FRAC_1_PI
             }
+            #[inline]
             fn FRAC_1_SQRT_2() -> Self {
                 ::core::$f::consts::FRAC_1_SQRT_2
             }
+            #[inline]
             fn FRAC_2_PI() -> Self {
                 ::core::$f::consts::FRAC_2_PI
             }
+            #[inline]
             fn FRAC_2_SQRT_PI() -> Self {
                 ::core::$f::consts::FRAC_2_SQRT_PI
             }
+            #[inline]
             fn FRAC_PI_2() -> Self {
                 ::core::$f::consts::FRAC_PI_2
             }
+            #[inline]
             fn FRAC_PI_3() -> Self {
                 ::core::$f::consts::FRAC_PI_3
             }
+            #[inline]
             fn FRAC_PI_4() -> Self {
                 ::core::$f::consts::FRAC_PI_4
             }
+            #[inline]
             fn FRAC_PI_6() -> Self {
                 ::core::$f::consts::FRAC_PI_6
             }
+            #[inline]
             fn FRAC_PI_8() -> Self {
                 ::core::$f::consts::FRAC_PI_8
             }
+            #[inline]
             fn LN_10() -> Self {
                 ::core::$f::consts::LN_10
             }
+            #[inline]
             fn LN_2() -> Self {
                 ::core::$f::consts::LN_2
             }
+            #[inline]
             fn LOG10_2() -> Self {
                 ::core::$f::consts::LOG10_2
             }
+            #[inline]
             fn LOG10_E() -> Self {
                 ::core::$f::consts::LOG10_E
             }
+            #[inline]
             fn LOG2_10() -> Self {
                 ::core::$f::consts::LOG2_10
             }
+            #[inline]
             fn LOG2_E() -> Self {
                 ::core::$f::consts::LOG2_E
             }
+            #[inline]
             fn PI() -> Self {
                 ::core::$f::consts::PI
             }
+            #[inline]
             fn SQRT_2() -> Self {
                 ::core::$f::consts::SQRT_2
             }
+            #[inline]
             fn TAU() -> Self {
                 ::core::$f::consts::TAU
             }
@@ -2439,11 +2557,13 @@ pub const trait TotalOrder {
 }
 
 impl const TotalOrder for f32 {
+    #[inline]
     fn total_cmp(&self, other: &Self) -> Ordering {
         self.total_cmp(other)
     }
 }
 impl const TotalOrder for f64 {
+    #[inline]
     fn total_cmp(&self, other: &Self) -> Ordering {
         self.total_cmp(other)
     }

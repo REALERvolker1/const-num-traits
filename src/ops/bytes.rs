@@ -81,6 +81,7 @@ pub const trait ToBytes {
     /// let bytes = ToBytes::to_ne_bytes(&0x12345678u32);
     /// assert_eq!(bytes, expected)
     /// ```
+    #[inline]
     fn to_ne_bytes(&self) -> Self::Bytes {
         #[cfg(target_endian = "big")]
         let bytes = self.to_be_bytes();
@@ -139,6 +140,7 @@ pub const trait FromBytes: Sized {
     /// let value: u32 = FromBytes::from_ne_bytes(&bytes);
     /// assert_eq!(value, 0x12345678)
     /// ```
+    #[inline]
     fn from_ne_bytes(bytes: &Self::Bytes) -> Self {
         #[cfg(target_endian = "big")]
         let this = Self::from_be_bytes(bytes);

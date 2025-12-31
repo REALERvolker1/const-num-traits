@@ -317,7 +317,7 @@ macro_rules! float_trait_impl {
                 } else if str_to_ascii_lower_eq_str(src, "-nan") {
                     return Ok(-$t::NAN);
                 }
-
+                #[inline]
                 fn slice_shift_char(src: &str) -> Option<(char, &str)> {
                     let mut chars = src.chars();
                     Some((chars.next()?, chars.as_str()))

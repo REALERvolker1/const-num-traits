@@ -1,9 +1,10 @@
+use ::core::ops::Sub;
 use core::num::Wrapping;
 use core::ops::Neg;
 
 use crate::__non_backwards_compatible_required_reexports::NumConstShim;
-use crate::float::FloatCore;
-use crate::Num;
+use crate::float::{Float, FloatCore};
+use crate::{Num, Zero};
 
 /// Useful functions for signed numbers (i.e. numbers that can be negative).
 pub const trait Signed:
@@ -43,34 +44,41 @@ pub const trait Signed:
     /// Returns true if the number is negative and false if the number is zero or positive.
     fn is_negative(&self) -> bool;
 }
+#[inline]
+const fn abs_sub_default<T>(a: T, b: T) -> T
+where
+    T: [const] PartialOrd + [const] Sub<T, Output = T> + [const] Zero,
+{
+    if a <= b { T::zero() } else { a - b }
+}
 
 macro_rules! signed_impl {
     ($($t:ty)*) => ($(
         impl const Signed for $t {
             #[inline]
             fn abs(&self) -> $t {
-                if self.is_negative() { -*self } else { *self }
+                <$t>::abs(*self)
             }
 
             #[inline]
             fn abs_sub(&self, other: &$t) -> $t {
-                if *self <= *other { 0 } else { *self - *other }
+                abs_sub_default(*self, *other)
             }
 
             #[inline]
             fn signum(&self) -> $t {
-                match *self {
-                    n if n > 0 => 1,
-                    0 => 0,
-                    _ => -1,
-                }
+                <$t>::signum(*self)
             }
 
             #[inline]
-            fn is_positive(&self) -> bool { *self > 0 }
+            fn is_positive(&self) -> bool {
+                <$t>::is_positive(*self)
+            }
 
             #[inline]
-            fn is_negative(&self) -> bool { *self < 0 }
+            fn is_negative(&self) -> bool {
+                <$t>::is_negative(*self)
+            }
         }
     )*)
 }
@@ -121,11 +129,11 @@ macro_rules! signed_float_impl {
             /// and `other` is returned.
             #[inline]
             fn abs_sub(&self, other: &$t) -> $t {
-                if *self <= *other {
-                    0.
-                } else {
-                    *self - *other
-                }
+                #[cfg(any(feature = "libm", feature = "std"))]
+                return Float::abs_sub(*self, *other);
+
+                #[cfg(not(any(feature = "libm", feature = "std")))]
+                return abs_sub_default(*self, *other);
             }
 
             /// # Returns

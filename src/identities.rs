@@ -24,6 +24,7 @@ pub const trait Zero: Sized + [const] Add<Self, Output = Self> + [const] Destruc
     fn zero() -> Self;
 
     /// Sets `self` to the additive identity element of `Self`, `0`.
+    #[inline]
     fn set_zero(&mut self) {
         *self = Zero::zero();
     }
@@ -79,14 +80,15 @@ impl<T: [const] Zero> const Zero for Wrapping<T>
 where
     Wrapping<T>: [const] Add<Output = Wrapping<T>>,
 {
+    #[inline]
     fn is_zero(&self) -> bool {
         self.0.is_zero()
     }
-
+    #[inline]
     fn set_zero(&mut self) {
         self.0.set_zero();
     }
-
+    #[inline]
     fn zero() -> Self {
         Wrapping(T::zero())
     }
@@ -104,14 +106,15 @@ impl<T: [const] Zero> const Zero for Saturating<T>
 where
     Saturating<T>: [const] Add<Output = Saturating<T>>,
 {
+    #[inline]
     fn is_zero(&self) -> bool {
         self.0.is_zero()
     }
-
+    #[inline]
     fn set_zero(&mut self) {
         self.0.set_zero();
     }
-
+    #[inline]
     fn zero() -> Self {
         Saturating(T::zero())
     }
@@ -145,6 +148,7 @@ pub const trait One: Sized + [const] Mul<Self, Output = Self> + [const] Destruct
     fn one() -> Self;
 
     /// Sets `self` to the multiplicative identity element of `Self`, `1`.
+    #[inline]
     fn set_one(&mut self) {
         *self = One::one();
     }
@@ -210,10 +214,11 @@ impl<T: [const] One> const One for Wrapping<T>
 where
     Wrapping<T>: [const] Mul<Output = Wrapping<T>>,
 {
+    #[inline]
     fn set_one(&mut self) {
         self.0.set_one();
     }
-
+    #[inline]
     fn one() -> Self {
         Wrapping(T::one())
     }
@@ -231,10 +236,11 @@ impl<T: [const] One> const One for Saturating<T>
 where
     Saturating<T>: [const] Mul<Output = Saturating<T>>,
 {
+    #[inline]
     fn set_one(&mut self) {
         self.0.set_one();
     }
-
+    #[inline]
     fn one() -> Self {
         Saturating(T::one())
     }

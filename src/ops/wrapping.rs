@@ -211,6 +211,7 @@ impl<T: [const] WrappingAdd> const WrappingAdd for Wrapping<T>
 where
     Wrapping<T>: [const] Add<Output = Wrapping<T>>,
 {
+    #[inline]
     fn wrapping_add(&self, v: &Self) -> Self {
         Wrapping(self.0.wrapping_add(&v.0))
     }
@@ -219,6 +220,7 @@ impl<T: [const] WrappingSub> const WrappingSub for Wrapping<T>
 where
     Wrapping<T>: [const] Sub<Output = Wrapping<T>>,
 {
+    #[inline]
     fn wrapping_sub(&self, v: &Self) -> Self {
         Wrapping(self.0.wrapping_sub(&v.0))
     }
@@ -227,6 +229,7 @@ impl<T: [const] WrappingMul> const WrappingMul for Wrapping<T>
 where
     Wrapping<T>: [const] Mul<Output = Wrapping<T>>,
 {
+    #[inline]
     fn wrapping_mul(&self, v: &Self) -> Self {
         Wrapping(self.0.wrapping_mul(&v.0))
     }
@@ -235,6 +238,7 @@ impl<T: [const] WrappingNeg> const WrappingNeg for Wrapping<T>
 where
     Wrapping<T>: [const] Neg<Output = Wrapping<T>>,
 {
+    #[inline]
     fn wrapping_neg(&self) -> Self {
         Wrapping(self.0.wrapping_neg())
     }
@@ -243,6 +247,7 @@ impl<T: [const] WrappingShl> const WrappingShl for Wrapping<T>
 where
     Wrapping<T>: [const] Shl<usize, Output = Wrapping<T>>,
 {
+    #[inline]
     fn wrapping_shl(&self, rhs: u32) -> Self {
         Wrapping(self.0.wrapping_shl(rhs))
     }
@@ -251,6 +256,7 @@ impl<T: [const] WrappingShr> const WrappingShr for Wrapping<T>
 where
     Wrapping<T>: [const] Shr<usize, Output = Wrapping<T>>,
 {
+    #[inline]
     fn wrapping_shr(&self, rhs: u32) -> Self {
         Wrapping(self.0.wrapping_shr(rhs))
     }

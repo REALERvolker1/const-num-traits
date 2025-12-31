@@ -21,6 +21,7 @@ pub const trait LowerBounded {
 
 // FIXME: With a major version bump, this should be a supertrait instead
 impl<T: [const] Bounded> const LowerBounded for T {
+    #[inline]
     fn min_value() -> T {
         Bounded::min_value()
     }
@@ -34,6 +35,7 @@ pub const trait UpperBounded {
 
 // FIXME: With a major version bump, this should be a supertrait instead
 impl<T: [const] Bounded> const UpperBounded for T {
+    #[inline]
     fn max_value() -> T {
         Bounded::max_value()
     }
@@ -113,9 +115,11 @@ bounded_impl_nonzero!(NonZeroI64, i64::MIN, i64::MAX);
 bounded_impl_nonzero!(NonZeroI128, i128::MIN, i128::MAX);
 
 impl<T: [const] Bounded> const Bounded for Wrapping<T> {
+    #[inline]
     fn min_value() -> Self {
         Wrapping(T::min_value())
     }
+    #[inline]
     fn max_value() -> Self {
         Wrapping(T::max_value())
     }

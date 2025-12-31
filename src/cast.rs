@@ -328,10 +328,13 @@ macro_rules! float_to_int_unchecked {
     ($flt:ty => $int:ty) => {
         // SAFETY: Must not be NaN or infinite; must be representable as the integer after truncating.
         // We already checked that the float is in the exclusive range `(MIN-1, MAX+1)`.
+        #[inline]
         const fn ftoi(x: $flt) -> $int {
+            #[inline(always)]
             const fn in_const(x: $flt) -> $int {
                 x as _
             }
+            #[inline(always)]
             fn at_rt(x: $flt) -> $int {
                 unsafe { x.to_int_unchecked() }
             }
@@ -848,6 +851,7 @@ impl_num_cast_nonzero!(NonZeroI64, to_i64);
 impl_num_cast_nonzero!(NonZeroI128, to_i128);
 
 impl<T: [const] NumCast> const NumCast for Wrapping<T> {
+    #[inline]
     fn from<U: [const] ToPrimitive>(n: U) -> Option<Self> {
         T::from(n).map(Wrapping)
     }
